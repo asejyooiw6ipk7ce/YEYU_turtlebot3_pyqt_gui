@@ -67,7 +67,7 @@ class Nav2WaypointGui(QMainWindow):
         self.timer.start(50)     # 타이머 0.05초마다 울리기 시작
 
 		
-		# (1) GUI 화면 레이어드 만드는 함수 ; PyQt에서 .ui파일 만드는 거
+	# (1) GUI 화면 레이어드 만드는 함수 ; PyQt에서 .ui파일 만드는 거
     def make_gui(self):
         main_widget = QWidget()                # 메인 위젯 생성
         main_layout = QVBoxLayout()            # 세로 레이아웃 생성
@@ -84,7 +84,7 @@ class Nav2WaypointGui(QMainWindow):
 
         self.waypoint_combo = QComboBox()
         self.waypoint_button = QPushButton('선택한 Waypoint로 이동')
-        self.waypoint_button.clicked.connect(self.go_to_waypoint)
+        self.waypoint_button.clicked.connect(self.go_to_waypoint)    # waypoint_button 클릭 -> 2. go_to_waypoint 실행
 
         waypoint_layout.addWidget(QLabel('Waypoint 선택'))
         waypoint_layout.addWidget(self.waypoint_combo)
@@ -175,7 +175,7 @@ class Nav2WaypointGui(QMainWindow):
             text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
             self.trajectory_label.setText(text)     # 화면에 경로순서 표
 
-	#                      ; self.waypoints -> x,y,z,qz,qw로 걸러낸 걸 pose(msg)=완성된 위치 메세지로 담아서 반환
+	# go_to_waypoint() 내부에서 호출 ; self.waypoints -> x,y,z,qz,qw로 걸러낸 걸 pose(msg)=완성된 위치 메세지로 담아서 반환
     def make_pose(self, waypoint_name):
         wp = self.waypoints[waypoint_name]     # self.waypoints 중 선택한 목적지(waypoint_name) -> wp
 
@@ -213,7 +213,7 @@ class Nav2WaypointGui(QMainWindow):
 
         return pose
 
-	#            ; 단일 목적지 액션 통신 기능
+	# 2.waypoint_button 클릭의 슬롯함수 ; 단일 목적지 액션 통신 기능
     def go_to_waypoint(self):
         waypoint_name = self.waypoint_combo.currentText()  # GUI창 waypoint_combo에서 선택한 값 -> way
 
@@ -221,19 +221,20 @@ class Nav2WaypointGui(QMainWindow):
             self.log('선택된 waypoint가 없습니다.')
             return
 
-		# 1초동안 Nav2 액션서버 켜져있는지 확인
+		# 1초동안 Nav2 액션서버 켜져있는지 확인 -> 안켜져있음 빠져나감
         if not self.navigate_client.wait_for_server(timeout_sec=1.0):
             self.log('/navigate_to_pose 액션 서버가 준비되지 않았습니다.')
             return
 
-        goal_msg = NavigateToPose.Goal()
-        goal_msg.pose = self.make_pose(waypoint_name)
-        goal_msg.behavior_tree = ''
+        goal_msg = NavigateToPose.Goal()                 # 액션 목적지 NavigateToPose메세지 생성
+        goal_msg.pose = self.make_pose(waypoint_name)    # waypoint_name -> msg.pose(goal)
+        goal_msg.behavior_tree = ''                      # msg.behavior_tree 공란으로 설정
 
         self.log(f'Waypoint 이동 요청: {waypoint_name}')
 
+        # navigat_client에게 비동기(async) 명령
         future = self.navigate_client.send_goal_async(goal_msg)
-        future.add_done_callback(self.waypoint_goal_response)
+        future.add_done_callback(self.waypoint_goal_response) # 서버가 수락거절 응답 오면 -> waypoint_goal_response 실행
 
     def waypoint_goal_response(self, future):
         goal_handle = future.result()
