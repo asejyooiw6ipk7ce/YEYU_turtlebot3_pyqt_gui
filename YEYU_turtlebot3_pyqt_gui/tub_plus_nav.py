@@ -4,13 +4,14 @@ import subprocess
 import signal 
 import math                                                               # yaw 계산(도->쿼터니언)
 import rclpy                                                              # ros2 client library for python (TurtleBot3GuiNode)
+import yaml
 from rclpy.node import Node                                               # Node 클래스 (TurtleBot3GuiNode(Node))
 from geometry_msgs.msg import Twist                                       # msg
 from nav_msgs.msg import Odometry                                         # msg
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
-from PyQt5.QtCore import QTimer                                           # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
+from PyQt5.QtCore import QTimer, QProcess                                          # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
 from PyQt5.QtCore import QObject, pyqtSignal                              # RosSignals 클래스 추가시 필요한 것들  
 from geometry_msgs.msg import PoseWithCovarianceStamped                   # ROS2 내비게이션 시스템에서 로봇 위치와 방향 전달할 때 사용되는 msg규격(초기위치 지정할 때 반드시 이 형식으로 보내야 로봇이 이해)
 from rclpy.action import ActionClient                                     # /navigate_to_pose
@@ -44,12 +45,7 @@ class RosSignals(QObject):
 class TurtleBot3GuiNode(Node):
     def __init__(self):                                     # 클래스 생성자. 
 
-        ''' 다른 방식으로 변경(미완성)
-        # 인자인 yaml 설정
-        self.yaml_file = yaml_file  # 이 노드 객체 생성할 때 받는 인자의 yaml_file을 self.yaml_file에 저장
-                                    # 인자로 받는 건 __init__ 나가면 사라짐, self.를 붙이면 이 객체 내부 인스턴스 변수가 됨 
-        
-        ''' 
+        # yaml파일 불러와야함
 
         super().__init__('turtlebot3_burger_gui')                         # 부모 생성자 호출 + 노드 이름 지정
         self.signals = RosSignals()
@@ -96,7 +92,7 @@ class TurtleBot3GuiNode(Node):
         )
 
         # navigate_to_pose 액션클라이언트 생성
-        self.nav_client = ActionClient(
+        self.navigate_client = ActionClient(
             self,
             NavigateToPose,
             'navigate_to_pose'
@@ -122,7 +118,7 @@ class TurtleBot3GuiNode(Node):
         ''''[경유점 순자 주행]'''
         # follow_waypoints 액션클라이언트 생성
         self.follow_client = ActionClient(
-            self.node,
+            self,
             FollowWaypoints,
             'follow_waypoints'
         )
@@ -211,7 +207,7 @@ class TurtleBot3GuiNode(Node):
 
         pose = PoseStamped()                   # ROS2 표준 위치 msg 객체생성
         pose.header.frame_id = frame_id        # 좌표계 주입
-        pose.header.stamp = self.node.get_clock().now().to_msg()  # ROS2 타임스탬프 주입
+        pose.header.stamp = self.get_clock().now().to_msg()  # ROS2 타임스탬프 주입
 
 		# pose에 x,y,z,yaw 저장
         pose.pose.position.x = x
@@ -241,30 +237,30 @@ class TurtleBot3GuiNode(Node):
     def odom_callback(self, msg):
         self.last_odom = msg        # 받은 msg를 lase_odom에 저장
 
-    # initpos_topic 발행함수 정의
-    def publish_initial_pose(self, x, y, yaw):
-        msg = PoseWithCovarianceStamped()
+    # # initpos_topic 발행함수 정의
+    # def publish_initial_pose(self, x, y, yaw):
+    #     msg = PoseWithCovarianceStamped()
 
-        msg.header.frame_id = 'map'                # 이 좌표의 기준 'map'으로 지정
-        msg.header.stamp = self.get_clock().now().to_msg() # msg가 발행되는 현재 컴퓨터 시간의 타임스탬프 찍어줌 
+    #     msg.header.frame_id = 'map'                # 이 좌표의 기준 'map'으로 지정
+    #     msg.header.stamp = self.get_clock().now().to_msg() # msg가 발행되는 현재 컴퓨터 시간의 타임스탬프 찍어줌 
 
-        msg.pose.pose.position.x = float(x)        # 입력한 위치를 메세지 주머니에 대입
-        msg.pose.pose.position.y = float(y)
+    #     msg.pose.pose.position.x = float(x)        # 입력한 위치를 메세지 주머니에 대입
+    #     msg.pose.pose.position.y = float(y)
 
-        qx, qy, qz, qw = yaw_to_quaternion(yaw)    # 각도->쿼터니언 값 qx,qy,qz,qw에 담아
-        msg.pose.pose.orientation.x = qx           # 쿼터니언 값 주머니에 채움
-        msg.pose.pose.orientation.y = qy
-        msg.pose.pose.orientation.z = qz
-        msg.pose.pose.orientation.w = qw
+    #     qx, qy, qz, qw = yaw_to_quaternion(yaw)    # 각도->쿼터니언 값 qx,qy,qz,qw에 담아
+    #     msg.pose.pose.orientation.x = qx           # 쿼터니언 값 주머니에 채움
+    #     msg.pose.pose.orientation.y = qy
+    #     msg.pose.pose.orientation.z = qz
+    #     msg.pose.pose.orientation.w = qw
 
-        # 공분산 ; "내가 지금 찍어준 이 위치가 얼마나 불확실한가"에 대한 에러 확률 지표
-        ''' -> 자율주행 알고리즘(AMCL)이 이를 기반으로 로봇 주변 파티클 흩뿌려 위치 추정 시작할 수 있게 됨'''
-        msg.pose.covariance[0] = 0.25      # X오차
-        msg.pose.covariance[7] = 0.25      # y오차
-        msg.pose.covariance[35] = 0.0685   # 각도 오차
+    #     # 공분산 ; "내가 지금 찍어준 이 위치가 얼마나 불확실한가"에 대한 에러 확률 지표
+    #     ''' -> 자율주행 알고리즘(AMCL)이 이를 기반으로 로봇 주변 파티클 흩뿌려 위치 추정 시작할 수 있게 됨'''
+    #     msg.pose.covariance[0] = 0.25      # X오차
+    #     msg.pose.covariance[7] = 0.25      # y오차
+    #     msg.pose.covariance[35] = 0.0685   # 각도 오차
 
-        # 발행
-        self.initial_pose_pub.publish(msg)   
+    #     # 발행
+    #     self.initial_pose_pub.publish(msg)   
     
     # # navpose_topic 액션클라이언트 ; goal 전송 함수
     # def send_goal(self, x, y, yaw):
@@ -284,10 +280,10 @@ class TurtleBot3GuiNode(Node):
     #     goal_msg.pose.pose.orientation.z = qz
     #     goal_msg.pose.pose.orientation.w = qw
 
-    #     if not self.nav_client.wait_for_server(timeout_sec=1.0):
+    #     if not self.navigate_client.wait_for_server(timeout_sec=1.0):
     #         return False, 'Nav2 action server is not available'
 
-    #     future = self.nav_client.send_goal_async(goal_msg)
+    #     future = self.navigate_client.send_goal_async(goal_msg)
     #     future.add_done_callback(self._goal_response_callback)
 
     #     return True, f'Goal sent: x={x:.2f}, y={y:.2f}, yaw={yaw:.2f}'
@@ -305,23 +301,27 @@ class TurtleBot3GuiNode(Node):
     def go_to_waypoint(self,waypoint_name):
 
         if waypoint_name == '':
-            self.log('선택된 waypoint가 없습니다.')
+            self.signals.log_triggered.emit('선택된 waypoint가 없습니다.')
             return
 
 		# 1초동안 Nav2 액션서버 켜져있는지 확인 -> 안켜져있음 빠져나감
         if not self.navigate_client.wait_for_server(timeout_sec=1.0):
-            self.log('/navigate_to_pose 액션 서버가 준비되지 않았습니다.')
+            self.signals.log_triggered.emit('/navigate_to_pose 액션 서버가 준비되지 않았습니다.')
             return
 
         goal_msg = NavigateToPose.Goal()                 # 액션 목적지 NavigateToPose메세지 생성
         goal_msg.pose = self.make_pose(waypoint_name)    # waypoint_name -> msg.pose(goal)
         goal_msg.behavior_tree = ''                      # msg.behavior_tree 공란으로 설정
 
-        self.log(f'Waypoint 이동 요청: {waypoint_name}')
+        self.signals.log_triggered.emit(f'Waypoint 이동 요청: {waypoint_name}')
 
         # navigat_client에게 비동기(async) 명령 - goal_msg 좌표로 이동해줘
         future = self.navigate_client.send_goal_async(goal_msg)
         future.add_done_callback(self.waypoint_goal_response) # 서버가 수락거절 응답 오면 -> (4) waypoint_goal_response 실행
+
+        # 요청이 정상적으로 액션 서버에 송신되었음을 GUI에 알림 (튜플 반환)
+        return True, f'Waypoint 이동 요청 송신 완료: {waypoint_name}'
+        
 
     # 2-1 navigate_client가 요청-> navigate_server 응답시 콜백함수
     def waypoint_goal_response(self, future):
@@ -329,11 +329,11 @@ class TurtleBot3GuiNode(Node):
 
         # 서버 명령 거절
         if not goal_handle.accepted:                
-            self.log('Waypoint goal이 거부되었습니다.')
+            self.signals.log_triggered.emit('Waypoint goal이 거부되었습니다.')
             return
 
         # 서버 명령 수락
-        self.log('Waypoint goal이 수락되었습니다.')
+        self.signals.log_triggered.emit('Waypoint goal이 수락되었습니다.')
 
         # navigat_client에게 비동기(async) 명령 - 방금 주문 실시간 공유해줘
         result_future = goal_handle.get_result_async()
@@ -341,7 +341,7 @@ class TurtleBot3GuiNode(Node):
 
     # 2-2 in(4) navigate_server 응답시 콜백함수
     def waypoint_result(self, future):
-        self.log('Waypoint 이동 완료')  # 도착 성공 로그
+        self.signals.log_triggered.emit('Waypoint 이동 완료')  # 도착 성공 로그
 
         '''
         # navpose_topic 액션클라이언트 ; goal 취소
@@ -399,9 +399,9 @@ class TurtleBot3GUI(QWidget):
         
         # Launch Control 박스 속 5가지 버튼 시그널 -> 4. run_command() 슬롯 연결 
         self.connect_PB.clicked.connect (self.connect_ros)
-        self.nav2_PB.clicked.connect(lambda: self.run__command('nav2',['ros2','launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'use_sim_time:=false']))
-        self.rviz_PB.clicked.connect(lambda: self.run__command('rviz',['rviz2']))
-        self.teleop_PB.clicked.connect(lambda: self.run__command('teleop',['ros2','run', 'turtlebot3_teleop', 'teleop_keyboard']))
+        self.nav2_PB.clicked.connect(lambda: self.run_command('nav2',['ros2','launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'use_sim_time:=false']))
+        self.rviz_PB.clicked.connect(lambda: self.run_command('rviz',['rviz2']))
+        self.teleop_PB.clicked.connect(lambda: self.run_command('teleop',['ros2','run', 'turtlebot3_teleop', 'teleop_keyboard']))
         self.bringup_PB.clicked.connect(self.bringup_ros)
 
         # Launch Control 박스 속 kill_proc_PB 시그널 -> 5. stop_processos() 슬롯 연결
@@ -480,18 +480,18 @@ class TurtleBot3GUI(QWidget):
             
     # 4. stop_all_PB 시그널의 플롯 ; 프로세스 종료
     def stop_all_processes(self):
-        self.log_text.append("Stopping bringup...")
+        self.log("Stopping bringup...")
         self.run_ssh('~/tb3_scripts/stop_bringup.sh')
 
         for name, proc in self.processes:
             if proc.poll() is None:
                 os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                 print(f'{name} stopped')
-                self.log_text.append(f'{name} stopped')
+                self.log(f'{name} stopped')
 
 
         self.processes.clear()
-        self.log_text.append("All processes stopped.")                                       
+        self.log("All processes stopped.")                                       
 
     # 5. 전진후진좌우회전정지 버튼의 슬롯
     def send_velocity(self, linear, angular):
@@ -519,7 +519,7 @@ class TurtleBot3GUI(QWidget):
         data = data.strip()
 
         if data:
-            self.log_text.append(data)
+            self.log(data)
 
         if "STARTED" in data or "ALREADY_RUNNING" in data or "RUNNING" in data:
             self.robot_state_lineEdit.setText("Status: RUNNING")
@@ -535,15 +535,15 @@ class TurtleBot3GUI(QWidget):
         data = data.strip()
 
         if data:
-            self.log_text.append(data)
+            self.log(data)
 
     def bringup_ros(self):
-        self.log_text.append("Starting bringup...")
+        self.log("Starting bringup...")
         self.run_ssh('~/tb3_scripts/start_bringup.sh')
 
 
     def bringup_stop(self):
-        self.log_text.append("Stopping bringup...")
+        self.log("Stopping bringup...")
         self.run_ssh('~/tb3_scripts/stop_bringup.sh')
 
 
@@ -594,14 +594,15 @@ class TurtleBot3GUI(QWidget):
             return                              
 
         odom = self.node.last_odom              
+        
+        # quat_to_yaw함수 지웠는데 여기서 호출됨 (미완성)
+        # if odom:                                                  
+        #     p = odom.pose.pose.position                           
+        #     yaw = quaternion_to_yaw(odom.pose.pose.orientation)   
 
-        if odom:                                                  
-            p = odom.pose.pose.position                           
-            yaw = quaternion_to_yaw(odom.pose.pose.orientation)   
-
-            self.odom_x_lcd.display(f'{p.x:.2f}')                 
-            self.odom_y_lcd.display(f'{p.y:.2f}')                 
-            self.odom_yaw_lcd.display(f'{yaw:.2f}')               
+        #     self.odom_x_lcd.display(f'{p.x:.2f}')                 
+        #     self.odom_y_lcd.display(f'{p.y:.2f}')                 
+        #     self.odom_yaw_lcd.display(f'{yaw:.2f}')               
 
         if self.node.last_scan_min is not None:
             self.scan_lineEdit.setText(f'{self.node.last_scan_min:.2f}')    
@@ -644,8 +645,8 @@ class TurtleBot3GUI(QWidget):
         waypoint_name = self.waypoint_combo.currentText()  # GUI창 waypoint_combo에서 선택한 값 -> way
 
         if waypoint_name == '':
-        self.log('선택된 waypoint가 없습니다.')
-        return
+            self.log('선택된 waypoint가 없습니다.')
+            return
 
         ok, text = self.node.go_to_waypoint(waypoint_name)
 
