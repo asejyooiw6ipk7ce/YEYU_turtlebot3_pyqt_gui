@@ -33,7 +33,7 @@ class Nav2WaypointGui(QMainWindow):
         super().__init__()          # 부모클래스 생성자 호출
 
         self.yaml_file = yaml_file  # 이 노드 객체 생성할 때 받는 인자의 yaml_file을 self.yaml_file에 저장
-                                   ''' 인자로 받는 건 __init__ 나가면 사라짐, self.를 붙이면 이 객체 내부 인스턴스 변수가 됨 '''
+        '''                          인자로 받는 건 __init__ 나가면 사라짐, self.를 붙이면 이 객체 내부 인스턴스 변수가 됨 '''
 
 		# yaml파일에서 가져올 정보
         self.waypoints = {}         # 단일 목적지 저장할 딕셔너리

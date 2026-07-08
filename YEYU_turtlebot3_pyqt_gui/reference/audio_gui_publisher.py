@@ -19,7 +19,6 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QMessageBox,
 )
-
 from robot_audio_interfaces.msg import AudioCommand               # 음성명령데이터 AudioCommand msg타입
 
 
