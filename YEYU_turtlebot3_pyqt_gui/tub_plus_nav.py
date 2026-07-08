@@ -476,6 +476,7 @@ class TurtleBot3GUI(QWidget):
                 print(f'{name} stopped')
                 self.log_text.append(f'{name} stopped')
 
+
         self.processes.clear()
         self.log_text.append("All processes stopped.")                                       
 
