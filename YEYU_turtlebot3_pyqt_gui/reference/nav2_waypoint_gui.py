@@ -98,7 +98,7 @@ class Nav2WaypointGui(QMainWindow):
         self.trajectory_combo = QComboBox()
         self.trajectory_label = QLabel('')
         self.trajectory_button = QPushButton('선택한 Trajectory 주행')
-        self.trajectory_button.clicked.connect(self.go_to_trajectory)
+        self.trajectory_button.clicked.connect(self.go_to_trajectory)                # tragectory_button 클릭 -> 3. go_to_trajectory 실행
         self.trajectory_combo.currentIndexChanged.connect(self.show_trajectory_info)
 
         trajectory_layout.addWidget(QLabel('Trajectory 선택'))
@@ -148,7 +148,7 @@ class Nav2WaypointGui(QMainWindow):
             self.waypoints[name] = wp         # 딕셔너리에 데이터 추가(키,값)
             self.waypoint_combo.addItem(name)  # GUI 콤보박스(waypoint_combo)에 추가
 
-		# trajectory_list 리스트 -> self.trajectories 딕셔너리로 정
+		# trajectory_list 리스트 -> self.trajectories 딕셔너리로 정제
         for traj in trajectory_list:
             name = traj['name']
             wp_names = traj['waypoints']
@@ -161,12 +161,8 @@ class Nav2WaypointGui(QMainWindow):
         self.log('YAML 로드 완료')
         self.log(f'Waypoint 개수: {len(self.waypoints)}')
         self.log(f'Trajectory 개수: {len(self.trajectories)}')
-    
-    # 1. timer 울리는 시그널의 슬롯함수    
-    def ros_spin_once(self):
-        rclpy.spin_once(self.node, timeout_sec=0.0)
-		
-	# (3) 첫번째 경로 정보 화면에 띄우는 함수 (load_yaml() 내부에 호출)
+
+    # (3) 첫번째 경로 정보 화면에 띄우는 함수 ((2)load_yaml() 내부에 호출)
     def show_trajectory_info(self):
         traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져
 
@@ -175,7 +171,7 @@ class Nav2WaypointGui(QMainWindow):
             text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
             self.trajectory_label.setText(text)     # 화면에 경로순서 표
 
-	# go_to_waypoint() 내부에서 호출 ; self.waypoints -> x,y,z,qz,qw로 걸러낸 걸 pose(msg)=완성된 위치 메세지로 담아서 반환
+    # (3)-2,3-2 go_to_waypoint() 내부에서 호출 ; self.waypoints -> x,y,z,qz,qw로 걸러낸 걸 pose(msg)=완성된 위치 메세지로 담아서 반환
     def make_pose(self, waypoint_name):
         wp = self.waypoints[waypoint_name]     # self.waypoints 중 선택한 목적지(waypoint_name) -> wp
 
@@ -212,8 +208,12 @@ class Nav2WaypointGui(QMainWindow):
         pose.pose.orientation.w = qw
 
         return pose
+    
+    # 1. timer 울리는 시그널의 슬롯함수    
+    def ros_spin_once(self):
+        rclpy.spin_once(self.node, timeout_sec=0.0)
 
-	# 2.waypoint_button 클릭의 슬롯함수 ; 단일 목적지 액션 통신 기능
+    # 2. waypoint_button 클릭의 슬롯함수 ; 단일 목적지 액션 통신 기능
     def go_to_waypoint(self):
         waypoint_name = self.waypoint_combo.currentText()  # GUI창 waypoint_combo에서 선택한 값 -> way
 
@@ -232,27 +232,33 @@ class Nav2WaypointGui(QMainWindow):
 
         self.log(f'Waypoint 이동 요청: {waypoint_name}')
 
-        # navigat_client에게 비동기(async) 명령
+        # navigat_client에게 비동기(async) 명령 - goal_msg 좌표로 이동해줘
         future = self.navigate_client.send_goal_async(goal_msg)
-        future.add_done_callback(self.waypoint_goal_response) # 서버가 수락거절 응답 오면 -> waypoint_goal_response 실행
+        future.add_done_callback(self.waypoint_goal_response) # 서버가 수락거절 응답 오면 -> (4) waypoint_goal_response 실행
 
+    # 2-(4) navigate_client가 요청-> navigate_server 응답시 콜백함수
     def waypoint_goal_response(self, future):
-        goal_handle = future.result()
+        goal_handle = future.result()              # future.result(요청결과) -> goal_handle
 
-        if not goal_handle.accepted:
+        # 서버 명령 거절
+        if not goal_handle.accepted:                
             self.log('Waypoint goal이 거부되었습니다.')
             return
 
+        # 서버 명령 수락
         self.log('Waypoint goal이 수락되었습니다.')
 
+        # navigat_client에게 비동기(async) 명령 - 방금 주문 실시간 공유해줘
         result_future = goal_handle.get_result_async()
-        result_future.add_done_callback(self.waypoint_result)
+        result_future.add_done_callback(self.waypoint_result) # 도착 완료 응답 -> (5) waypoint_result 콜백
 
+    # 2-(5) in(4) navigate_server 응답시 콜백함수
     def waypoint_result(self, future):
-        self.log('Waypoint 이동 완료')
+        self.log('Waypoint 이동 완료')  # 도착 성공 로그
 
+    # 3. tragectory_button 클릭 시그널의 슬롯함수 ; 
     def go_to_trajectory(self):
-        traj_name = self.trajectory_combo.currentText()
+        traj_name = self.trajectory_combo.currentText()  # GUI창에서 선택항목 가져오기
 
         if traj_name == '':
             self.log('선택된 trajectory가 없습니다.')
@@ -262,14 +268,17 @@ class Nav2WaypointGui(QMainWindow):
             self.log('trajectory 정보가 없습니다.')
             return
 
+        # 1초동안 액션서버 켜져있는지 확인
         if not self.follow_client.wait_for_server(timeout_sec=1.0):
             self.log('/follow_waypoints 액션 서버가 준비되지 않았습니다.')
             return
 
+        # self.trajectories에서 선택항목만 -> waypoint_names
         waypoint_names = self.trajectories[traj_name]
 
-        poses = []
+        poses = []    # 목적지 메세지들을 담을 리스트
 
+        # waypoint_names에 있는 목적지들 -> 좌표메세지형태로 poses에 담음
         for name in waypoint_names:
             if name not in self.waypoints:
                 self.log(f'YAML에 없는 waypoint입니다: {name}')
@@ -278,15 +287,18 @@ class Nav2WaypointGui(QMainWindow):
             pose = self.make_pose(name)
             poses.append(pose)
 
-        goal_msg = FollowWaypoints.Goal()
-        goal_msg.poses = poses
+        # Goal 메세지
+        goal_msg = FollowWaypoints.Goal() # 순차주행용 액션 goal 메세지 생성 -> goal_msg
+        goal_msg.poses = poses            # goal_msg에 목표값 poses 주입
 
         self.log(f'Trajectory 주행 요청: {traj_name}')
         self.log(f'포함된 waypoint 개수: {len(poses)}')
 
+        # navigat_client에게 비동기(async) 명령 - 결과 줘
         future = self.follow_client.send_goal_async(goal_msg)
-        future.add_done_callback(self.trajectory_goal_response)
+        future.add_done_callback(self.trajectory_goal_response) # server가 응답 오면 -> (6) rajectory_goal_response 실행
 
+    # 3-(6) 
     def trajectory_goal_response(self, future):
         goal_handle = future.result()
 
@@ -299,10 +311,9 @@ class Nav2WaypointGui(QMainWindow):
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self.trajectory_result)
 
+    # 3-(7)
     def trajectory_result(self, future):
         self.log('Trajectory 주행 완료')
-
-
 
     def log(self, msg):
         self.log_box.append(msg)
@@ -315,18 +326,18 @@ class Nav2WaypointGui(QMainWindow):
 
 
 def main():
-    rclpy.init(args=sys.argv)
+    rclpy.init(args=sys.argv)                     # ROS2 파이썬 시스템 초기화
 
-    ros_removed_args = remove_ros_args(sys.argv)
+    ros_removed_args = remove_ros_args(sys.argv)  # 터미널 인자 중 ROS 관련 설정 인자들을 정제하고 파이썬 순수 인자만 남깁니다.
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--yaml',
         required=True,
         help='waypoint yaml file path'
-    )
+    ) # 반드시 '--yaml 파일경로' 형태로 실행 - 필수 인자 규칙
 
-    args = parser.parse_args(ros_removed_args[1:])
+    args = parser.parse_args(ros_removed_args[1:])# 정제된 인자들 속에서 --yaml 뒤에 붙은 파일 경로를 파싱
 
     app = QApplication(ros_removed_args)
 
