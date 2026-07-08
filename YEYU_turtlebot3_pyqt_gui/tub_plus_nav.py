@@ -11,8 +11,9 @@ from nav_msgs.msg import Odometry                                         # msg
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
-from PyQt5.QtCore import QTimer, QProcess                                          # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
-from PyQt5.QtCore import QObject, pyqtSignal                              # RosSignals 클래스 추가시 필요한 것들  
+#from PyQt5.QtCore import QTimer                                          # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
+import threading                                                          # QTimer 대신 멀티스레드 사용
+from PyQt5.QtCore import QObject, pyqtSignal, QProcess                    # RosSignals 클래스 추가시 필요한 것들  
 from geometry_msgs.msg import PoseWithCovarianceStamped                   # ROS2 내비게이션 시스템에서 로봇 위치와 방향 전달할 때 사용되는 msg규격(초기위치 지정할 때 반드시 이 형식으로 보내야 로봇이 이해)
 from rclpy.action import ActionClient                                     # /navigate_to_pose
 from nav2_msgs.action import NavigateToPose                               # /navigate_to_pose
@@ -32,7 +33,7 @@ ROBOT = f"{ROBOT_USER}@{ROBOT_IP}"
 # ros2 콜백 - PyQt 테이터 전달
 class RosSignals(QObject):
 	# 문자열 전달할 수 있는 Qt 시그널 정의
-    yaml_loaded = pyqtSignal(list)      
+    yaml_loaded = pyqtSignal(list,list)      
     log_triggered = pyqtSignal(str)
     '''신호통로    이 통로로는 list 데이터만 보낼거야(통로 종류 지정) '''
 
@@ -152,7 +153,7 @@ class TurtleBot3GuiNode(Node):
                 ㄴ> self.signals.log_triggered.emit(list(self.trajectories.keys()))
             '''
 
-        self.signals.log_triggered.emit(list(self.waypoints.keys()), list(self.trajectories.keys()))
+        self.signals.yaml_loaded.emit(list(self.waypoints.keys()), list(self.trajectories.keys()))
 
 		# GUI에 로그 출력
         '''
@@ -360,14 +361,15 @@ class TurtleBot3GUI(QWidget):
 
         self.connect_signals()     # 사용자정의함수 ; 시그널->슬롯 연결
 
-        self.ros_timer = QTimer(self)                                           # QTimer 객체 생성
-        self.ros_timer.timeout.connect(self.spin_ros_once)                      # ros2_timer에서 알림이 울리면 -> 6. spin_ros_once 실행
-
-        self.ui_timer = QTimer(self)
-        self.ui_timer.timeout.connect(self.refresh_robot_status)                # ui_timer에서 알림이 울리면 -> 8. refresh_robot_status 실행
-        self.ui_timer.start(200)                                                # 200ms초마다 울리기
+        # QTimer 대신 멀티스레드로 변경
+        # self.ros_timer = QTimer(self)                                           # QTimer 객체 생성
+        # self.ros_timer.timeout.connect(self.spin_ros_once)                      # ros2_timer에서 알림이 울리면 -> 6. spin_ros_once 실행
+        # self.ui_timer = QTimer(self)
+        # self.ui_timer.timeout.connect(self.refresh_robot_status)                # ui_timer에서 알림이 울리면 -> 8. refresh_robot_status 실행
+        # self.ui_timer.start(200)                                                # 200ms초마다 울리기
 
         self.node.signals.yaml_loaded.connect(self.update_comboboxes)           # yaml_loaded 신호 왔을 때 -> 13. update_comboboxes 실행
+        self.node.signals.
 
     # print 대신 self.log()로
     def log(self, text):
@@ -416,19 +418,16 @@ class TurtleBot3GUI(QWidget):
 
         self.robot_state_lineEdit.setText('Connected to ROS')
 
-        if not rclpy.ok():
-            rclpy.init(args=None)
-
         print('ROS 2 connected')
 
 
     # 2. disconnect 시그널의 슬롯 ; node 퇴근 , ros_timer 멈춤
     def disconnect_ros(self):
         if self.node:                 
-            self.destroy_node()  
+            self.node.destroy_node()  
             self.node = None          
 
-        self.ros_timer.stop()         
+        #self.ros_timer.stop()  -> QTimer 대신 멀티스레드        
         self.ros_state_lineEdit.setText('Disconnected')                  
         self.log('ROS 2 disconnected')
 
@@ -539,11 +538,11 @@ class TurtleBot3GUI(QWidget):
 
 
 
-
-    # 6. ros_timer 타이머 울릴 때마다의 슬롯
-    def spin_ros_once(self):
-        if self.node:                                                      
-            rclpy.spin_once(self.node, timeout_sec=0.0)                    
+    # QTimer 대신 멀티스레드로 변경
+    # # 6. ros_timer 타이머 울릴 때마다의 슬롯
+    # def spin_ros_once(self):
+    #     if self.node:                                                      
+    #         rclpy.spin_once(self.node, timeout_sec=0.0)                    
 
     # 7. load_preset_PB 시그널의 슬롯
     def load_preset_goal(self):
@@ -562,6 +561,7 @@ class TurtleBot3GUI(QWidget):
         self.goal_yaw_spinBox.setValue(yaw)
 
         print(f'Preset loaded: x={x}, y={y}, yaw={yaw}')
+
 
     # 8. ui_timer 타이머 울릴때마다의 슬롯
     def refresh_robot_status(self):
@@ -678,7 +678,14 @@ class TurtleBot3GUI(QWidget):
 def main():
     app = QApplication(sys.argv)
 
+    if not rclpy.ok():
+        rclpy.init(args=None)
+
     ros_node = TurtleBot3GuiNode()
+
+    # 백그라운드 스레드 생성 및 시작 (rclpy.spin을 통째로 넘김)
+    ros_thread = threading.Thread(target=rclpy.spin, args=(ros_node,), daemon=True)
+    ros_thread.start()
 
     window = TurtleBot3GUI(ros_node)
     window.show()
@@ -686,6 +693,7 @@ def main():
     exit_code = app.exec_()
 
     ros_node.destroy_node()
+
     if rclpy.ok():
         rclpy.shutdown()
 
