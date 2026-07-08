@@ -157,20 +157,21 @@ class AudioGuiWindow(QWidget):
 
     # 3-1. publish_effect() 내부에 호출
     def get_sound_id(self):
-        return self.sound_combo.currentData()
+        return self.sound_combo.currentData()               # self.sound_combo(사운드ID 콤보박스)에 선택된 ID값 반환
 
     # 4-1. publish_tts_and_effect() 내부에 호출
     def get_volume(self):
-        return self.volume_spin.value()
+        return self.volume_spin.value()                     # self.volume_spin(볼륨 스핀박스)에 있는 숫자 반환
 
     # 4-2. publish_tts_and_effect() 내부에 호출
     def get_repeat(self):
-        return self.repeat_spin.value()
+        return self.repeat_spin.value()                     # self.repeat_spin(반복횟수 스핀박스)에 있는 숫자 반환
 
     # 2. tts_button 클릭 시그널의 슬롯 함수
     def publish_tts(self):
-        text = self.get_text()
+        text = self.get_text()                             # 입력받은 텍스트(self.get_text) -> text
 
+        # 입력받은 게 없으면
         if not text:
             QMessageBox.warning(
                 self,
@@ -179,6 +180,7 @@ class AudioGuiWindow(QWidget):
             )
             return
 
+        # ros_node에서 publish_command(선택한 값) 호출
         self.ros_node.publish_command(
             command_type=AudioCommand.TYPE_TTS,
             text=text,
@@ -186,13 +188,13 @@ class AudioGuiWindow(QWidget):
             volume=self.get_volume(),
             repeat=self.get_repeat()
         )
-
         self.status_label.setText('TTS 명령 발행 완료')
 
     # 3. effect_button 클릭 시그널의 슬롯 함수
     def publish_effect(self):
-        sound_id = self.get_sound_id()
+        sound_id = self.get_sound_id()                      # 입력받은 ID값(self.get_sound_id) -> sound_id 
 
+        # 입력받은 게 없으면
         if not sound_id:
             QMessageBox.warning(
                 self,
@@ -201,6 +203,7 @@ class AudioGuiWindow(QWidget):
             )
             return
 
+        # ros_node에서 publish_command(선택한 값) 호출
         self.ros_node.publish_command(
             command_type=AudioCommand.TYPE_EFFECT,
             text='',
@@ -208,14 +211,14 @@ class AudioGuiWindow(QWidget):
             volume=self.get_volume(),
             repeat=self.get_repeat()
         )
-
         self.status_label.setText(f'효과음 명령 발행 완료: {sound_id}')
 
     # 4. tts_effext_button 클릭 시그널의 슬롯 함수
     def publish_tts_and_effect(self):
-        text = self.get_text()
-        sound_id = self.get_sound_id()
+        text = self.get_text()                               # 입력받은 텍스트(self.get_text) -> text
+        sound_id = self.get_sound_id()                       # 입력받은 ID값(self.get_sound_id) -> sound_id 
 
+        # 입력 받은 게 없으면
         if not text:
             QMessageBox.warning(
                 self,
@@ -223,7 +226,6 @@ class AudioGuiWindow(QWidget):
                 'TTS로 출력할 문장을 입력하세요.'
             )
             return
-
         if not sound_id:
             QMessageBox.warning(
                 self,
@@ -232,6 +234,7 @@ class AudioGuiWindow(QWidget):
             )
             return
 
+        # ros_node에서 publish_command(선택한 값) 호출
         self.ros_node.publish_command(
             command_type=AudioCommand.TYPE_TTS_AND_EFFECT,
             text=text,
@@ -239,11 +242,11 @@ class AudioGuiWindow(QWidget):
             volume=self.get_volume(),
             repeat=self.get_repeat()
         )
-
         self.status_label.setText('효과음 + TTS 명령 발행 완료')
 
     # 5. stop_button 클릭 시그널의 슬롯 함수
     def publish_stop(self):
+        # ros_node에서 publish_command(선택한 값) 호출
         self.ros_node.publish_command(
             command_type=AudioCommand.TYPE_STOP,
             text='',
@@ -251,14 +254,14 @@ class AudioGuiWindow(QWidget):
             volume=1.0,
             repeat=1
         )
-
         self.status_label.setText('재생 정지 명령 발행 완료')
 
     # 6. clear_button 클릭 시그널의 슬롯 함수
     def clear_text(self):
-        self.text_edit.clear()
+        self.text_edit.clear()       # self.text_edit 내용 초기화
         self.status_label.setText('내용 삭제 완료')
 
+    
     def closeEvent(self, event):
         self.spin_timer.stop()
         event.accept()
