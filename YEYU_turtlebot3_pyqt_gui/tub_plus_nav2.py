@@ -13,9 +13,10 @@ from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import QTimer                                           # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
 from PyQt5.QtCore import QObject, pyqtSignal                              # RosSignals 클래스 추가시 필요한 것들  
 from geometry_msgs.msg import PoseWithCovarianceStamped                   # ROS2 내비게이션 시스템에서 로봇 위치와 방향 전달할 때 사용되는 msg규격(초기위치 지정할 때 반드시 이 형식으로 보내야 로봇이 이해)
-from rclpy.action import ActionClient                                     # /navigate_to_pose
+from rclpy.action import ActionClient                                     # action
 from nav2_msgs.action import NavigateToPose                               # /navigate_to_pose
-from geometry_msgs.msg import PoseStamped                                 # /navigate_to_pose
+from geometry_msgs.msg import PoseStamped                                  # make_pose() 함수 안에서 사용
+from nav2_msgs.action import FollowWaypoints                              # /follow_waypoints
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import BatteryState                                  # [추가] 배터리 상태 토픽 메시지 규격
@@ -29,7 +30,7 @@ class RosSignals(QObject):
 
 
 class TurtleBot3GuiNode(Node):
-    def __init__(self):                                     # 클래스 생성자. 
+    def __init__(self):                                     # 클래스 생성자 
 
         ''' 다른 방식으로 변경(미완성)
         # 인자인 yaml 설정
@@ -38,7 +39,7 @@ class TurtleBot3GuiNode(Node):
         
         ''' 
 
-        super().__init__('turtlebot3_burger_gui')                         # 부모 생성자 호출 + 노드 이름 지정
+        super().__init__('turtlebot3_burger_gui')            # 부모 생성자 호출 + 노드 이름 지정
         self.signals = RosSignals()
 
         # pyqt노드에서 
@@ -166,16 +167,16 @@ class TurtleBot3GuiNode(Node):
     # load_yaml() 내부에 호출 ; 첫번째 경로 정보 화면에 띄우는 함수
     def show_trajectory_info(self):
         traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져옴 
-'''2. trajectory_combo'''
+        '''2. trajectory_combo'''
 
         if traj_name in self.trajectories:
             wp_names = self.trajectories[traj_name]
             text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
             self.trajectory_label.setText(text)     # 화면에 경로순서 표
-'''3. trajectory_label'''
+        '''3. trajectory_label'''
 
-        # show_trajectory_info() 내부에 호출
-        def make_pose(self, waypoint_name):
+    # show_trajectory_info() 내부에 호출
+    def make_pose(self, waypoint_name):
         wp = self.waypoints[waypoint_name]     # self.waypoints 중 선택한 목적지(waypoint_name) -> wp
 
         frame_id = wp.get('frame_id', 'map')   # wp 안에 기준좌표계(없으면 map) -> frame_id
@@ -330,7 +331,7 @@ class TurtleBot3GuiNode(Node):
     def waypoint_result(self, future):
         self.log('Waypoint 이동 완료')  # 도착 성공 로그
 
-'''
+    '''
     # navpose_topic 액션클라이언트 ; goal 취소
     def cancel_goal(self):
         if self.goal_handle:
@@ -338,7 +339,7 @@ class TurtleBot3GuiNode(Node):
             return True
 
         return False
-'''    
+    '''    
     # scan_topic 콜백함수
     def scan_callback(self, msg):
         values = [
@@ -371,7 +372,7 @@ class MainWindow(QMainWindow):
         self.ui_timer.timeout.connect(self.refresh_robot_status)                # ui_timer에서 알림이 울리면 -> 8. refresh_robot_status 실행
         self.ui_timer.start(200)                                                # 200ms초마다 울리기
 
-    # print 대신 self.log()로
+    # 13. print 대신 self.log()로
     def log(self, text):
         self.log_listWidget.addItem(text)
         self.log_listWidget.scrollToBottom()
@@ -380,7 +381,7 @@ class MainWindow(QMainWindow):
     def connect_signals(self):
         self.connect_PB.clicked.connect(self.connect_ros)                        # connect_PB 클릭 -> 1. connect_ros 실행
         self.disconnect_PB.clicked.connect(self.disconnect_ros)                  # disconnect_PB 클릭 -> 2. disconnect_ros 실행
-        self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 13. closeEvent 실행
+        self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 100. closeEvent 실행
         
         # Launch Control 박스 속 5가지 버튼 시그널 -> 4. run_command() 슬롯 연결 
         self.bringup_PB.clicked.connect(lambda: self.run_command('bringup',['ros2', 'launch', 'turtlebot3_bringup', 'robot.launch.py']))
@@ -402,8 +403,9 @@ class MainWindow(QMainWindow):
         # Nav2 Goal 박스 속 시그널 -> 슬롯 연결
         self.load_preset_PB.clicked.connect(self.load_preset_goal)         # load_preset_PB 클릭 -> 7. load_preset_goal 실행
         self.reset_odom_view_PB.clicked.connect(self.reset_odom_display)   # reset_odom_view_PB 클릭 -> 9. reset_odom_display 실행
+        self.node.signals.log_triggered.connect(self.log)                  # self.node에서 log_triggered 신호가 오면 -> 13. log 함수 실행
+        self.node.signals.yaml_loaded.connect(self.up_comboboxes)
         
-        self.
         #self.initial_pose_PB.clicked.connect(self.set_initial_pose)        # initial_pose_PB 클릭 -> 10. set_initial_pose 실행
         #self.send_goal_PB.clicked.connect(self.send_nav_goal)              # send_goal_PB 클릭 -> 11. send_nav_goal 실행
         #self.cancel_goal_PB.clicked.connect(self.cancel_nav_goal)          # cancel_goal_PB 클릭 -> 12. cancel_nav_goal 실행
@@ -538,6 +540,7 @@ class MainWindow(QMainWindow):
         self.odom_yaw_lcd.display('0.00')
         self.log('Odometry display reset. Robot odom frame is not reset.')
 
+    '''
     # 10. initial_pose_PB 시그널의 슬롯함수
     def set_initial_pose(self):
         if not self.node:
@@ -561,14 +564,13 @@ class MainWindow(QMainWindow):
         waypoint_name = self.waypoint_combo.currentText()  # GUI창 waypoint_combo에서 선택한 값 -> way
 
         if waypoint_name == '':
-        self.log('선택된 waypoint가 없습니다.')
-        return
+            self.log('선택된 waypoint가 없습니다.')
+            return
 
         ok, text = self.node.go_to_waypoint(waypoint_name)
 
         self.log(text)
 
-'''
     # 12. 
     def cancel_nav_goal(self):
         if not self.node:
@@ -579,9 +581,9 @@ class MainWindow(QMainWindow):
             self.log('Goal cancel requested')
         else:
             self.log('No active goal handle')
-'''
+    '''
 
-    # 13. 
+    # 100. 
     def closeEvent(self, event):
         if self.node:
             self.send_velocity(0.0, 0.0)
