@@ -339,8 +339,7 @@ class TurtleBot3GUI(QWidget):
 
     # 14. print 대신 self.log()로
     def log(self, text):
-        self.log_listWidget.addItem(text)
-        self.log_listWidget.scrollToBottom()
+        self.log_text.append(text)  # UI 파일 이름인 log_text로 맞추고 append 사용
 
     # 15.odom_received 시그널의 플롯함수
     def update_odom_ui(self, x, y, yaw):
