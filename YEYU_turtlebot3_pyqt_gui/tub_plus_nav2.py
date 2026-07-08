@@ -9,16 +9,24 @@ from geometry_msgs.msg import Twist                                       # msg
 from nav_msgs.msg import Odometry                                         # msg
 from pathlib import Path
 from PyQt5 import uic
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 from PyQt5.QtCore import QTimer                                           # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
 from PyQt5.QtCore import QObject, pyqtSignal                              # RosSignals 클래스 추가시 필요한 것들  
 from geometry_msgs.msg import PoseWithCovarianceStamped                   # ROS2 내비게이션 시스템에서 로봇 위치와 방향 전달할 때 사용되는 msg규격(초기위치 지정할 때 반드시 이 형식으로 보내야 로봇이 이해)
 from rclpy.action import ActionClient                                     # /navigate_to_pose
 from nav2_msgs.action import NavigateToPose                               # /navigate_to_pose
 from geometry_msgs.msg import PoseStamped                                 # /navigate_to_pose
+from nav2_msgs.action import FollowWaypoints  # /follow_waypoints
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from sensor_msgs.msg import LaserScan
-from sensor_msgs.msg import BatteryState                                  # [추가] 배터리 상태 토픽 메시지 규격
+from sensor_msgs.msg import BatteryState                              # [추가] 배터리 상태 토픽 메시지 규격
+
+
+ROBOT_USER = "yeyu"
+ROBOT_IP = "192.168.230.100"
+
+ROBOT = f"{ROBOT_USER}@{ROBOT_IP}"
+
 
 # ros2 콜백 - PyQt 테이터 전달
 class RosSignals(QObject):
@@ -166,16 +174,16 @@ class TurtleBot3GuiNode(Node):
     # load_yaml() 내부에 호출 ; 첫번째 경로 정보 화면에 띄우는 함수
     def show_trajectory_info(self):
         traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져옴 
-'''2. trajectory_combo'''
+        '''2. trajectory_combo'''
 
         if traj_name in self.trajectories:
             wp_names = self.trajectories[traj_name]
             text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
             self.trajectory_label.setText(text)     # 화면에 경로순서 표
-'''3. trajectory_label'''
+        '''3. trajectory_label'''
 
-        # show_trajectory_info() 내부에 호출
-        def make_pose(self, waypoint_name):
+    # show_trajectory_info() 내부에 호출
+    def make_pose(self, waypoint_name):
         wp = self.waypoints[waypoint_name]     # self.waypoints 중 선택한 목적지(waypoint_name) -> wp
 
         frame_id = wp.get('frame_id', 'map')   # wp 안에 기준좌표계(없으면 map) -> frame_id
@@ -330,15 +338,15 @@ class TurtleBot3GuiNode(Node):
     def waypoint_result(self, future):
         self.log('Waypoint 이동 완료')  # 도착 성공 로그
 
-'''
-    # navpose_topic 액션클라이언트 ; goal 취소
-    def cancel_goal(self):
-        if self.goal_handle:
-            self.goal_handle.cancel_goal_async()
-            return True
+        '''
+        # navpose_topic 액션클라이언트 ; goal 취소
+        def cancel_goal(self):
+            if self.goal_handle:
+                self.goal_handle.cancel_goal_async()
+                return True
 
-        return False
-'''    
+            return False
+        '''    
     # scan_topic 콜백함수
     def scan_callback(self, msg):
         values = [
@@ -348,19 +356,21 @@ class TurtleBot3GuiNode(Node):
 
         self.last_scan_min = min(values) if values else None
 
-class MainWindow(QMainWindow):
+class TurtleBot3GUI(QWidget):
     def __init__(self,ros_node):
         super().__init__()
+
         self.signals = RosSignals()
+        
+
         self.node = ros_node
 
         # turtlebot3_burger_gui.ui 파일 띄우기
-        ui_path = Path(__file__).with_name('turtlebot3_burger_gui.ui')
+        ui_path = Path(__file__).parent.parent / "resource" / "turtlebot3_pyqt_gui2.ui"
         uic.loadUi(str(ui_path), self)
 
         self.processes = []        # 실행중인 프로세스 보관할 리스트
 
-        self.node = None           # ROS2 노드로 쓸 node 생성
 
         self.connect_signals()     # 사용자정의함수 ; 시그널->슬롯 연결
 
@@ -383,14 +393,15 @@ class MainWindow(QMainWindow):
         self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 13. closeEvent 실행
         
         # Launch Control 박스 속 5가지 버튼 시그널 -> 4. run_command() 슬롯 연결 
-        self.bringup_PB.clicked.connect(lambda: self.run_command('bringup',['ros2', 'launch', 'turtlebot3_bringup', 'robot.launch.py']))
-        self.slam_PB.clicked.connect(lambda: self.run_command('slam',['ros2', 'launch', 'turtlebot3_cartographer', 'cartographer.launch.py', 'use_sim_time:=false']))
-        self.nav2_PB.clicked.connect(lambda: self.run_command('nav2',['ros2', 'launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'use_sim_time:=false']))
-        self.rviz_PB.clicked.connect(lambda: self.run_command('rviz2',['rviz2']))
-        self.save_map_PB.clicked.connect(lambda: self.run_command('save_map',['ros2', 'run', 'nav2_map_server', 'map_saver_cli', '-f', 'tb3_map']))
-        
+        self.connect_PB.clicked.connect (self.connect_ros)
+        self.nav2_PB.clicked.connect(lambda: self.run__command('nav2',['ros2','launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'use_sim_time:=false']))
+        self.rviz_PB.clicked.connect(lambda: self.run__command('rviz',['rviz2']))
+        self.teleop_PB.clicked.connect(lambda: self.run__command('teleop',['ros2','run', 'turtlebot3_teleop', 'teleop_keyboard']))
+        self.bringup_PB.clicked.connect(self.bringup_ros)
+
         # Launch Control 박스 속 kill_proc_PB 시그널 -> 5. stop_processos() 슬롯 연결
-        self.kill_proc_PB.clicked.connect(self.stop_processes)
+        self.stopall_PB.clicked.connect(self.stop_all_processes)
+
 
         # Velocity Control 박스 속 forward,stop,right,left,backward 시그널 -> 5. send_velocity() 슬롯 연결
         self.forward_PB.clicked.connect(lambda: self.send_velocity(self.linear_spinBox.value(), 0.0))   # forward_PB 클릭 -> send_velocity(입력값, 0.0)
@@ -403,7 +414,6 @@ class MainWindow(QMainWindow):
         self.load_preset_PB.clicked.connect(self.load_preset_goal)         # load_preset_PB 클릭 -> 7. load_preset_goal 실행
         self.reset_odom_view_PB.clicked.connect(self.reset_odom_display)   # reset_odom_view_PB 클릭 -> 9. reset_odom_display 실행
         
-        self.
         #self.initial_pose_PB.clicked.connect(self.set_initial_pose)        # initial_pose_PB 클릭 -> 10. set_initial_pose 실행
         #self.send_goal_PB.clicked.connect(self.send_nav_goal)              # send_goal_PB 클릭 -> 11. send_nav_goal 실행
         #self.cancel_goal_PB.clicked.connect(self.cancel_nav_goal)          # cancel_goal_PB 클릭 -> 12. cancel_nav_goal 실행
@@ -413,33 +423,25 @@ class MainWindow(QMainWindow):
 
     # 1. connect 시그널의 슬롯 ; 환경변수 등록,rclpy 초기화 , turtlebot3_gui_node 생성 + ros_timer 시작
     def connect_ros(self):
-        if self.node:
-            self.log('ROS 2 is already connected')
-            return
 
-        domain_id = self.domain_lineEdit.text().strip()
-        namespace = self.namespace_lineEdit.text().strip()
+        os.environ['ROS_DOMAIN_ID'] = '40'
 
-        os.environ['ROS_DOMAIN_ID'] = domain_id if domain_id else '40'
+        self.robot_state_lineEdit.setText('Connected to ROS')
 
-        if not rclpy.ok():                                              
-            rclpy.init(args=None)                                       
-        
-        self.node = TurtleBot3GuiNode(self.namespace_lineEdit.text())  
+        if not rclpy.ok():
+            rclpy.init(args=None)
 
-        self.ros_timer.start(20)                               
-        self.ros_status_lineEdit.setText('Connected')           
-        self.log('ROS 2 connected')
+        print('ROS 2 connected')
 
 
     # 2. disconnect 시그널의 슬롯 ; node 퇴근 , ros_timer 멈춤
     def disconnect_ros(self):
         if self.node:                 
-            self.node.destroy_node()  
+            self.destroy_node()  
             self.node = None          
 
         self.ros_timer.stop()         
-        self.ros_status_lineEdit.setText('Disconnected')                  
+        self.ros_state_lineEdit.setText('Disconnected')                  
         self.log('ROS 2 disconnected')
 
     # 3. Launch Control 박스 슬롯 ; 외부 명령어를 실행하고, 실행된 프로세스를 관리리스트(processes)에 저장
@@ -460,17 +462,22 @@ class MainWindow(QMainWindow):
         except FileNotFoundError:                        
             self.log(f'Command not found: {cmd[0]}')
 
-        except Exception as exc:
-            self.log(f'Launch failed: {exc}')
+        except Exception as e:
+            self.log(f'Launch failed: {e}')
             
-    # 4. kill_proc_PB 시그널의 플롯 ; 프로세스 종료
-    def stop_processes(self):
-        for name, proc in self.processes:                                 
-            if proc.poll() is None:                                       
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)           
-                self.log(f'{name} stopped')                                  
+    # 4. stop_all_PB 시그널의 플롯 ; 프로세스 종료
+    def stop_all_processes(self):
+        self.log_text.append("Stopping bringup...")
+        self.run_ssh('~/tb3_scripts/stop_bringup.sh')
 
-        self.processes.clear()                                            
+        for name, proc in self.processes:
+            if proc.poll() is None:
+                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+                print(f'{name} stopped')
+                self.log_text.append(f'{name} stopped')
+
+        self.processes.clear()
+        self.log_text.append("All processes stopped.")                                       
 
     # 5. 전진후진좌우회전정지 버튼의 슬롯
     def send_velocity(self, linear, angular):
@@ -482,6 +489,68 @@ class MainWindow(QMainWindow):
         self.cmd_lineEdit.setText(f'lin={linear:.2f}, ang={angular:.2f}')  
         self.log(f'cmd_vel: linear={linear:.2f}, angular={angular:.2f}')
     
+    # 6. Brindup 버튼의 슬롯 ; ssh로 bringup 스크립트 실행
+    def run_ssh(self,command):
+        self.process = QProcess(self)
+
+        ssh_command=[ROBOT, command]
+
+        self.process.readyReadStandardOutput.connect(self.read_stdout)
+        self.process.readyReadStandardError.connect(self.read_stderr)
+
+        self.process.start('ssh', ssh_command)
+
+    def read_stdout(self):
+        data = self.process.readAllStandardOutput().data().decode()
+        data = data.strip()
+
+        if data:
+            self.log_text.append(data)
+
+        if "STARTED" in data or "ALREADY_RUNNING" in data or "RUNNING" in data:
+            self.robot_state_lineEdit.setText("Status: RUNNING")
+
+        elif "STOPPED" in data or "NOT_RUNNING" in data:
+            self.robot_state_lineEdit.setText("Status: STOPPED")
+
+        elif "FAILED" in data:
+            self.robot_state_lineEdit.setText("Status: FAILED")
+
+    def read_stderr(self):
+        data = self.process.readAllStandardError().data().decode()
+        data = data.strip()
+
+        if data:
+            self.log_text.append(data)
+
+    def bringup_ros(self):
+        self.log_text.append("Starting bringup...")
+        self.run_ssh('~/tb3_scripts/start_bringup.sh')
+
+
+    def bringup_stop(self):
+        self.log_text.append("Stopping bringup...")
+        self.run_ssh('~/tb3_scripts/stop_bringup.sh')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     # 6. ros_timer 타이머 울릴 때마다의 슬롯
     def spin_ros_once(self):
         if self.node:                                                      
@@ -568,25 +637,25 @@ class MainWindow(QMainWindow):
 
         self.log(text)
 
-'''
-    # 12. 
-    def cancel_nav_goal(self):
-        if not self.node:
-            self.log('Connect ROS 2 first')
-            return
+    '''
+        # 12. 
+        def cancel_nav_goal(self):
+            if not self.node:
+                self.log('Connect ROS 2 first')
+                return
 
-        if self.node.cancel_goal():
-            self.log('Goal cancel requested')
-        else:
-            self.log('No active goal handle')
-'''
+            if self.node.cancel_goal():
+                self.log('Goal cancel requested')
+            else:
+                self.log('No active goal handle')
+    '''
 
     # 13. 
     def closeEvent(self, event):
         if self.node:
             self.send_velocity(0.0, 0.0)
 
-        self.stop_processes()
+        self.stop_all_processes()
         self.disconnect_ros()
 
         if rclpy.ok():
@@ -599,9 +668,16 @@ def main():
 
     ros_node = TurtleBot3GuiNode()
 
-    window = MainWindow(ros_node)
+    window = TurtleBot3GUI(ros_node)
     window.show()
-    sys.exit(app.exec_())
+
+    exit_code = app.exec_()
+
+    ros_node.destroy_node()
+    if rclpy.ok():
+        rclpy.shutdown()
+
+    sys.exit(exit_code)
 
 
 if __name__ == '__main__':

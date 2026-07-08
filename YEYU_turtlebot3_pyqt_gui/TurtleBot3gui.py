@@ -67,8 +67,6 @@ class TurtleBot3GUI(QWidget):
 
         print ('ROS 2 disconnected')
     
-    
-
 
     def run__command(self,name,cmd):
         env = os.environ.copy()
