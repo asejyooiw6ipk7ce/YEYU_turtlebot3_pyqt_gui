@@ -42,6 +42,10 @@ class RosSignals(QObject):
     log_triggered = pyqtSignal(str)
     '''신호통로    이 통로로는 list 데이터만 보낼거야(통로 종류 지정) '''
 
+    # QTimer->멀티스레드로 인해 ui_timer의 슬롯함수를 수정하는 과정에서 생긴 코드
+    odom_received = pyqtSignal(float, float, float)  # x, y, yaw 전달
+    scan_received = pyqtSignal(float)                # 최소 거리 전달
+    battery_received = pyqtSignal(float, float)      # 퍼센트, 전압 전달
 
 class TurtleBot3GuiNode(Node):
     def __init__(self):                                     # 클래스 생성자. 
@@ -172,8 +176,12 @@ class TurtleBot3GuiNode(Node):
         
     # [추가] battery_status 콜백함수 정의
     def battery_callback(self, msg):
-        self.last_battery_p = msg.percentage 
-        self.last_battery_v = msg.voltage
+        # QTimer->멀티스레드 방식으로 바꾸면서 ui_imter의 플롯함수 다 흩어짐
+        # self.last_battery_p = msg.percentage 
+        # self.last_battery_v = msg.voltage
+
+        self.signals.battery_received.emit(msg.percentage * 100.0, msg.voltage)
+
 
     # cmd_topic 발행함수 정의
     def publish_cmd(self, linear, angular):
@@ -184,7 +192,11 @@ class TurtleBot3GuiNode(Node):
 
     # odom_topic 수신받았을 때 콜백함수 정의
     def odom_callback(self, msg):
-        self.last_odom = msg        # 받은 msg를 lase_odom에 저장
+        # self.last_odom = msg        # 받은 msg를 lase_odom에 저장
+        p = msg.pose.pose.position                           
+        yaw = quaternion_to_yaw(msg.pose.pose.orientation) 
+
+        self.signals.odom_received.emit(p.x, p.y, yaw)
 
     # # initpos_topic 발행함수 정의
     # def publish_initial_pose(self, x, y, yaw):
@@ -346,8 +358,10 @@ class TurtleBot3GuiNode(Node):
             if math.isfinite(v) and v > 0.0
         ]
 
-        self.last_scan_min = min(values) if values else None
+        # QTimer 대신 멀티스레드로 바뀌면서 ui_timer의 슬롯 함수 흩어져서 여기도 수정
+        #self.last_scan_min = min(values) if values else None
 
+        self.signals.battery_received.emit(msg.percentage * 100.0, msg.voltage)
 class TurtleBot3GUI(QWidget):
     def __init__(self,ros_node):
         super().__init__()
@@ -373,13 +387,12 @@ class TurtleBot3GUI(QWidget):
         # self.ui_timer.timeout.connect(self.refresh_robot_status)                # ui_timer에서 알림이 울리면 -> 8. refresh_robot_status 실행
         # self.ui_timer.start(200)                                                # 200ms초마다 울리기
 
-        self.node.signals.yaml_loaded.connect(self.update_comboboxes)           # yaml_loaded 신호 왔을 때 -> 13. update_comboboxes 실행
-        self.node.signals.
-
-    # print 대신 self.log()로
-    def log(self, text):
-        self.log_listWidget.addItem(text)
-        self.log_listWidget.scrollToBottom()
+        # self.signals 신호 시그널 -> 플롯 연결
+        self.node.signals.yaml_loaded.connect(self.update_comboboxes)           # yaml_loaded 신호 -> 13. update_comboboxes() 실행
+        self.node.signals.log_triggered.connect(self.log)                       # log_triggered 신호 -> 14. log() 실행
+        self.node.signals.odom_received.connect(self.update_odom_ui)            # odom_received 신호 -> 15. update_odom_ui() 실행 
+        self.node.signals.scan_received.connect(self.update_scan_ui)            # scan_received 신호 -> 16. update_scan_ui() 실행
+        self.node.signals.battery_received.connect(self.update_battery_ui)      # battery_received 신호 -> 17. update_battery_ui() 실행
 
     # 시그널->슬롯 연결
     def connect_signals(self):
@@ -555,11 +568,6 @@ class TurtleBot3GUI(QWidget):
     #     if self.node:                                                      
     #         rclpy.spin_once(self.node, timeout_sec=0.0)                    
 
-
-
-
-            
-
     # 7. load_preset_PB 시그널의 슬롯
     def load_preset_goal(self):
         idx = self.preset_goal_CB.currentIndex()                           
@@ -579,31 +587,32 @@ class TurtleBot3GUI(QWidget):
         print(f'Preset loaded: x={x}, y={y}, yaw={yaw}')
 
 
-    # 8. ui_timer 타이머 울릴때마다의 슬롯
-    def refresh_robot_status(self):
-        if not self.node:                       
-            return                              
+    # refresh_robot_status(self) 부분을 update_odom_ui(),update_scan_ui(),update_battery_ui()로 넘어감
+    # # 8. ui_timer 타이머 울릴때마다의 슬롯
+    # def refresh_robot_status(self):
+    #     if not self.node:                       
+    #         return                              
 
-        odom = self.node.last_odom              
+    #     odom = self.node.last_odom              
         
-        if odom:                                                  
-            p = odom.pose.pose.position                           
-            yaw = quaternion_to_yaw(odom.pose.pose.orientation)   
+    #     if odom:                                                  
+    #         p = odom.pose.pose.position                           
+    #         yaw = quaternion_to_yaw(odom.pose.pose.orientation)   
 
-            self.odom_x_lcd.display(f'{p.x:.2f}')                 
-            self.odom_y_lcd.display(f'{p.y:.2f}')                 
-            self.odom_yaw_lcd.display(f'{yaw:.2f}')               
+    #         self.odom_x_lcd.display(f'{p.x:.2f}')                 
+    #         self.odom_y_lcd.display(f'{p.y:.2f}')                 
+    #         self.odom_yaw_lcd.display(f'{yaw:.2f}')               
 
-        if self.node.last_scan_min is not None:
-            self.scan_lineEdit.setText(f'{self.node.last_scan_min:.2f}')    
+    #     if self.node.last_scan_min is not None:
+    #         self.scan_lineEdit.setText(f'{self.node.last_scan_min:.2f}')    
 
-        '''[추가] 배터리 정보 UI 및 상태창 반영'''
-        if self.node.last_battery_p is not None and self.node.last_battery_v is not None:
-            # 1. 만약 UI 파일에 배터리를 표시할 LineEdit 위젯 등이 있다면 아래 주석을 풀어서 사용하세요.
-            # self.battery_lineEdit.setText(f'{self.node.last_battery_p * 100.0:.1f}% ({self.node.last_battery_v:.2f}V)')
+    #         '''[추가] 배터리 정보 UI 및 상태창 반영'''
+    #     if self.node.last_battery_p is not None and self.node.last_battery_v is not None:
+    #         # 1. 만약 UI 파일에 배터리를 표시할 LineEdit 위젯 등이 있다면 아래 주석을 풀어서 사용하세요.
+    #         self.battery_lineEdit.setText(f'{self.node.last_battery_p * 100.0:.1f}% ({self.node.last_battery_v:.2f}V)')
             
-            # 2. 하단 리스트 위젯에 주기적으로 배터리 로그 남기기 (원치 않을 시 주석처리 가능)
-            self.log(f'[Battery] {self.node.last_battery_p * 100.0:.1f}%, Voltage: {self.node.last_battery_v:.2f}V')
+    #         # 2. 하단 리스트 위젯에 주기적으로 배터리 로그 남기기 (원치 않을 시 주석처리 가능)
+    #         self.log(f'[Battery] {self.node.last_battery_p * 100.0:.1f}%, Voltage: {self.node.last_battery_v:.2f}V')
     
     # 9. reset_odom_view_PB 시그널의 슬롯 함수 ; Odometry View 화면 리셋
     def reset_odom_display(self):
@@ -676,6 +685,28 @@ class TurtleBot3GUI(QWidget):
             wp_names = self.trajectories[traj_name]
             text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
             self.trajectory_label.setText(text)     # 화면에 경로순서 표시
+
+    # 14. print 대신 self.log()로
+    def log(self, text):
+        self.log_listWidget.addItem(text)
+        self.log_listWidget.scrollToBottom()
+
+    # 15.odom_received 시그널의 플롯함수
+    def update_odom_ui(self, x, y, yaw):
+        self.odom_x_lcd.display(f'{x:.2f}')
+        self.odom_y_lcd.display(f'{y:.2f}')
+        self.odom_yaw_lcd.display(f'{yaw:.2f}')
+
+    # 16. scan_received 시그널의 플롯함수
+    def update_scan_ui(self, min_scan):
+        self.scan_lineEdit.setText(f'{min_scan:.2f}') 
+
+    # 17. battery_received 시그널의 플롯함수
+    def update_battery_ui(self, percentage, voltage):
+        try:
+            self.battery_lineEdit.setText(f'{percentage:.1f}% ({voltage:.2f}V)')
+        except AttributeError:
+            pass
 
     # 100. 
     def closeEvent(self, event):
