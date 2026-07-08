@@ -1,20 +1,17 @@
-#!/usr/bin/env python3
-
 import sys
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-=======
 import os                                                                 # os의 환경 변수를 ROS_DOMAIN_ID 값으로 저장하기 위해
 import subprocess
 import signal 
 import math                                                               # yaw 계산(도->쿼터니언)
 import rclpy                                                              # ros2 client library for python (TurtleBot3GuiNode)
+import yaml
 from rclpy.node import Node                                               # Node 클래스 (TurtleBot3GuiNode(Node))
 from geometry_msgs.msg import Twist                                       # msg
 from nav_msgs.msg import Odometry                                         # msg
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
-from PyQt5.QtCore import QTimer                                           # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
+from PyQt5.QtCore import QTimer, QProcess                                          # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
 from PyQt5.QtCore import QObject, pyqtSignal                              # RosSignals 클래스 추가시 필요한 것들  
 from geometry_msgs.msg import PoseWithCovarianceStamped                   # ROS2 내비게이션 시스템에서 로봇 위치와 방향 전달할 때 사용되는 msg규격(초기위치 지정할 때 반드시 이 형식으로 보내야 로봇이 이해)
 from rclpy.action import ActionClient                                     # /navigate_to_pose
@@ -31,46 +28,20 @@ ROBOT_IP = "192.168.230.100"
 
 ROBOT = f"{ROBOT_USER}@{ROBOT_IP}"
 
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
 
-import rclpy
-from rclpy.node import Node
-
-from PyQt5.QtCore import QTimer
-from PyQt5.QtWidgets import (
-    QApplication,
-    QWidget,
-    QTextEdit,
-    QPushButton,
-    QLabel,
-    QVBoxLayout,
-    QHBoxLayout,
-    QComboBox,
-    QDoubleSpinBox,
-    QSpinBox,
-    QMessageBox,
-)
-
-from robot_audio_interfaces.msg import AudioCommand
+# ros2 콜백 - PyQt 테이터 전달
+class RosSignals(QObject):
+	# 문자열 전달할 수 있는 Qt 시그널 정의
+    yaml_loaded = pyqtSignal(list)      
+    log_triggered = pyqtSignal(str)
+    '''신호통로    이 통로로는 list 데이터만 보낼거야(통로 종류 지정) '''
 
 
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-class AudioCommandPublisher(Node):
-    def __init__(self):
-        super().__init__('audio_gui_publisher_node')
-=======
 class TurtleBot3GuiNode(Node):
     def __init__(self):                                     # 클래스 생성자. 
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
 
-        self.declare_parameter('topic_name', '/audio/command')
-        self.topic_name = self.get_parameter('topic_name').value
+        # yaml파일 불러와야함
 
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-        self.publisher = self.create_publisher(
-            AudioCommand,
-            self.topic_name,
-=======
         super().__init__('turtlebot3_burger_gui')                         # 부모 생성자 호출 + 노드 이름 지정
         self.signals = RosSignals()
 
@@ -96,44 +67,33 @@ class TurtleBot3GuiNode(Node):
         self.cmd_pub = self.create_publisher(
             Twist,
             '/cmd_vel',
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
             10
         )
 
-        self.get_logger().info(f'Audio GUI publisher started')
-        self.get_logger().info(f'Publish topic: {self.topic_name}')
+        # /odom 수신자 생성
+        self.odom_sub = self.create_subscription(
+            Odometry,
+            '/odom',
+            self.odom_callback,
+            10
+        )
+        self.last_odom = None
 
-    def publish_command(
-        self,
-        command_type,
-        text='',
-        sound_id='',
-        volume=1.0,
-        repeat=1
-    ):
-        msg = AudioCommand()
-        msg.type = command_type
-        msg.text = text
-        msg.sound_id = sound_id
-        msg.volume = float(volume)
-        msg.repeat = int(repeat)
-
-        self.publisher.publish(msg)
-
-        self.get_logger().info(
-            f'Published AudioCommand '
-            f'type={msg.type}, text="{msg.text}", '
-            f'sound_id="{msg.sound_id}", volume={msg.volume}, repeat={msg.repeat}'
+        # /initialpose 발행자 생성
+        self.initial_pose_pub = self.create_publisher(
+            PoseWithCovarianceStamped,
+            '/initialpose',
+            10
         )
 
+        # navigate_to_pose 액션클라이언트 생성
+        self.navigate_client = ActionClient(
+            self,
+            NavigateToPose,
+            'navigate_to_pose'
+        )
+        self.goal_handle = None
 
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-class AudioGuiWindow(QWidget):
-    def __init__(self, ros_node: AudioCommandPublisher):
-        super().__init__()
-
-        self.ros_node = ros_node
-=======
         '''[/scan 수신]'''
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -153,7 +113,7 @@ class AudioGuiWindow(QWidget):
         ''''[경유점 순자 주행]'''
         # follow_waypoints 액션클라이언트 생성
         self.follow_client = ActionClient(
-            self.node,
+            self,
             FollowWaypoints,
             'follow_waypoints'
         )
@@ -242,7 +202,7 @@ class AudioGuiWindow(QWidget):
 
         pose = PoseStamped()                   # ROS2 표준 위치 msg 객체생성
         pose.header.frame_id = frame_id        # 좌표계 주입
-        pose.header.stamp = self.node.get_clock().now().to_msg()  # ROS2 타임스탬프 주입
+        pose.header.stamp = self.get_clock().now().to_msg()  # ROS2 타임스탬프 주입
 
 		# pose에 x,y,z,yaw 저장
         pose.pose.position.x = x
@@ -272,30 +232,30 @@ class AudioGuiWindow(QWidget):
     def odom_callback(self, msg):
         self.last_odom = msg        # 받은 msg를 lase_odom에 저장
 
-    # initpos_topic 발행함수 정의
-    def publish_initial_pose(self, x, y, yaw):
-        msg = PoseWithCovarianceStamped()
+    # # initpos_topic 발행함수 정의
+    # def publish_initial_pose(self, x, y, yaw):
+    #     msg = PoseWithCovarianceStamped()
 
-        msg.header.frame_id = 'map'                # 이 좌표의 기준 'map'으로 지정
-        msg.header.stamp = self.get_clock().now().to_msg() # msg가 발행되는 현재 컴퓨터 시간의 타임스탬프 찍어줌 
+    #     msg.header.frame_id = 'map'                # 이 좌표의 기준 'map'으로 지정
+    #     msg.header.stamp = self.get_clock().now().to_msg() # msg가 발행되는 현재 컴퓨터 시간의 타임스탬프 찍어줌 
 
-        msg.pose.pose.position.x = float(x)        # 입력한 위치를 메세지 주머니에 대입
-        msg.pose.pose.position.y = float(y)
+    #     msg.pose.pose.position.x = float(x)        # 입력한 위치를 메세지 주머니에 대입
+    #     msg.pose.pose.position.y = float(y)
 
-        qx, qy, qz, qw = yaw_to_quaternion(yaw)    # 각도->쿼터니언 값 qx,qy,qz,qw에 담아
-        msg.pose.pose.orientation.x = qx           # 쿼터니언 값 주머니에 채움
-        msg.pose.pose.orientation.y = qy
-        msg.pose.pose.orientation.z = qz
-        msg.pose.pose.orientation.w = qw
+    #     qx, qy, qz, qw = yaw_to_quaternion(yaw)    # 각도->쿼터니언 값 qx,qy,qz,qw에 담아
+    #     msg.pose.pose.orientation.x = qx           # 쿼터니언 값 주머니에 채움
+    #     msg.pose.pose.orientation.y = qy
+    #     msg.pose.pose.orientation.z = qz
+    #     msg.pose.pose.orientation.w = qw
 
-        # 공분산 ; "내가 지금 찍어준 이 위치가 얼마나 불확실한가"에 대한 에러 확률 지표
-        ''' -> 자율주행 알고리즘(AMCL)이 이를 기반으로 로봇 주변 파티클 흩뿌려 위치 추정 시작할 수 있게 됨'''
-        msg.pose.covariance[0] = 0.25      # X오차
-        msg.pose.covariance[7] = 0.25      # y오차
-        msg.pose.covariance[35] = 0.0685   # 각도 오차
+    #     # 공분산 ; "내가 지금 찍어준 이 위치가 얼마나 불확실한가"에 대한 에러 확률 지표
+    #     ''' -> 자율주행 알고리즘(AMCL)이 이를 기반으로 로봇 주변 파티클 흩뿌려 위치 추정 시작할 수 있게 됨'''
+    #     msg.pose.covariance[0] = 0.25      # X오차
+    #     msg.pose.covariance[7] = 0.25      # y오차
+    #     msg.pose.covariance[35] = 0.0685   # 각도 오차
 
-        # 발행
-        self.initial_pose_pub.publish(msg)   
+    #     # 발행
+    #     self.initial_pose_pub.publish(msg)   
     
     # # navpose_topic 액션클라이언트 ; goal 전송 함수
     # def send_goal(self, x, y, yaw):
@@ -315,10 +275,10 @@ class AudioGuiWindow(QWidget):
     #     goal_msg.pose.pose.orientation.z = qz
     #     goal_msg.pose.pose.orientation.w = qw
 
-    #     if not self.nav_client.wait_for_server(timeout_sec=1.0):
+    #     if not self.navigate_client.wait_for_server(timeout_sec=1.0):
     #         return False, 'Nav2 action server is not available'
 
-    #     future = self.nav_client.send_goal_async(goal_msg)
+    #     future = self.navigate_client.send_goal_async(goal_msg)
     #     future.add_done_callback(self._goal_response_callback)
 
     #     return True, f'Goal sent: x={x:.2f}, y={y:.2f}, yaw={yaw:.2f}'
@@ -336,23 +296,27 @@ class AudioGuiWindow(QWidget):
     def go_to_waypoint(self,waypoint_name):
 
         if waypoint_name == '':
-            self.log('선택된 waypoint가 없습니다.')
+            self.signals.log_triggered.emit('선택된 waypoint가 없습니다.')
             return
 
 		# 1초동안 Nav2 액션서버 켜져있는지 확인 -> 안켜져있음 빠져나감
         if not self.navigate_client.wait_for_server(timeout_sec=1.0):
-            self.log('/navigate_to_pose 액션 서버가 준비되지 않았습니다.')
+            self.signals.log_triggered.emit('/navigate_to_pose 액션 서버가 준비되지 않았습니다.')
             return
 
         goal_msg = NavigateToPose.Goal()                 # 액션 목적지 NavigateToPose메세지 생성
         goal_msg.pose = self.make_pose(waypoint_name)    # waypoint_name -> msg.pose(goal)
         goal_msg.behavior_tree = ''                      # msg.behavior_tree 공란으로 설정
 
-        self.log(f'Waypoint 이동 요청: {waypoint_name}')
+        self.signals.log_triggered.emit(f'Waypoint 이동 요청: {waypoint_name}')
 
         # navigat_client에게 비동기(async) 명령 - goal_msg 좌표로 이동해줘
         future = self.navigate_client.send_goal_async(goal_msg)
         future.add_done_callback(self.waypoint_goal_response) # 서버가 수락거절 응답 오면 -> (4) waypoint_goal_response 실행
+
+        # 요청이 정상적으로 액션 서버에 송신되었음을 GUI에 알림 (튜플 반환)
+        return True, f'Waypoint 이동 요청 송신 완료: {waypoint_name}'
+        
 
     # 2-1 navigate_client가 요청-> navigate_server 응답시 콜백함수
     def waypoint_goal_response(self, future):
@@ -360,11 +324,11 @@ class AudioGuiWindow(QWidget):
 
         # 서버 명령 거절
         if not goal_handle.accepted:                
-            self.log('Waypoint goal이 거부되었습니다.')
+            self.signals.log_triggered.emit('Waypoint goal이 거부되었습니다.')
             return
 
         # 서버 명령 수락
-        self.log('Waypoint goal이 수락되었습니다.')
+        self.signals.log_triggered.emit('Waypoint goal이 수락되었습니다.')
 
         # navigat_client에게 비동기(async) 명령 - 방금 주문 실시간 공유해줘
         result_future = goal_handle.get_result_async()
@@ -372,7 +336,7 @@ class AudioGuiWindow(QWidget):
 
     # 2-2 in(4) navigate_server 응답시 콜백함수
     def waypoint_result(self, future):
-        self.log('Waypoint 이동 완료')  # 도착 성공 로그
+        self.signals.log_triggered.emit('Waypoint 이동 완료')  # 도착 성공 로그
 
         '''
         # navpose_topic 액션클라이언트 ; goal 취소
@@ -404,18 +368,9 @@ class TurtleBot3GUI(QWidget):
         # turtlebot3_burger_gui.ui 파일 띄우기
         ui_path = Path(__file__).parent.parent / "resource" / "turtlebot3_pyqt_gui2.ui"
         uic.loadUi(str(ui_path), self)
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
 
-        self.setWindowTitle('TurtleBot3 Audio Command GUI')
-        self.resize(560, 420)
+        self.processes = []        # 실행중인 프로세스 보관할 리스트
 
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-        self.title_label = QLabel('TurtleBot3 원격 음성 출력 GUI')
-
-        self.text_edit = QTextEdit()
-        self.text_edit.setPlaceholderText(
-            'TurtleBot3 USB 스피커로 출력할 문장을 입력하세요.'
-=======
 
         self.connect_signals()     # 사용자정의함수 ; 시그널->슬롯 연결
 
@@ -439,9 +394,9 @@ class TurtleBot3GUI(QWidget):
         
         # Launch Control 박스 속 5가지 버튼 시그널 -> 4. run_command() 슬롯 연결 
         self.connect_PB.clicked.connect (self.connect_ros)
-        self.nav2_PB.clicked.connect(lambda: self.run__command('nav2',['ros2','launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'use_sim_time:=false']))
-        self.rviz_PB.clicked.connect(lambda: self.run__command('rviz',['rviz2']))
-        self.teleop_PB.clicked.connect(lambda: self.run__command('teleop',['ros2','run', 'turtlebot3_teleop', 'teleop_keyboard']))
+        self.nav2_PB.clicked.connect(lambda: self.run_command('nav2',['ros2','launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'use_sim_time:=false']))
+        self.rviz_PB.clicked.connect(lambda: self.run_command('rviz',['rviz2']))
+        self.teleop_PB.clicked.connect(lambda: self.run_command('teleop',['ros2','run', 'turtlebot3_teleop', 'teleop_keyboard']))
         self.bringup_PB.clicked.connect(self.bringup_ros)
 
         # Launch Control 박스 속 kill_proc_PB 시그널 -> 5. stop_processos() 슬롯 연결
@@ -512,18 +467,18 @@ class TurtleBot3GUI(QWidget):
             
     # 4. stop_all_PB 시그널의 플롯 ; 프로세스 종료
     def stop_all_processes(self):
-        self.log_text.append("Stopping bringup...")
+        self.log("Stopping bringup...")
         self.run_ssh('~/tb3_scripts/stop_bringup.sh')
 
         for name, proc in self.processes:
             if proc.poll() is None:
                 os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
                 print(f'{name} stopped')
-                self.log_text.append(f'{name} stopped')
+                self.log(f'{name} stopped')
 
 
         self.processes.clear()
-        self.log_text.append("All processes stopped.")                                       
+        self.log("All processes stopped.")                                       
 
     # 5. 전진후진좌우회전정지 버튼의 슬롯
     def send_velocity(self, linear, angular):
@@ -551,7 +506,7 @@ class TurtleBot3GUI(QWidget):
         data = data.strip()
 
         if data:
-            self.log_text.append(data)
+            self.log(data)
 
         if "STARTED" in data or "ALREADY_RUNNING" in data or "RUNNING" in data:
             self.robot_state_lineEdit.setText("Status: RUNNING")
@@ -567,15 +522,15 @@ class TurtleBot3GUI(QWidget):
         data = data.strip()
 
         if data:
-            self.log_text.append(data)
+            self.log(data)
 
     def bringup_ros(self):
-        self.log_text.append("Starting bringup...")
+        self.log("Starting bringup...")
         self.run_ssh('~/tb3_scripts/start_bringup.sh')
 
 
     def bringup_stop(self):
-        self.log_text.append("Stopping bringup...")
+        self.log("Stopping bringup...")
         self.run_ssh('~/tb3_scripts/stop_bringup.sh')
 
 
@@ -626,14 +581,15 @@ class TurtleBot3GUI(QWidget):
             return                              
 
         odom = self.node.last_odom              
+        
+        # quat_to_yaw함수 지웠는데 여기서 호출됨 (미완성)
+        # if odom:                                                  
+        #     p = odom.pose.pose.position                           
+        #     yaw = quaternion_to_yaw(odom.pose.pose.orientation)   
 
-        if odom:                                                  
-            p = odom.pose.pose.position                           
-            yaw = quaternion_to_yaw(odom.pose.pose.orientation)   
-
-            self.odom_x_lcd.display(f'{p.x:.2f}')                 
-            self.odom_y_lcd.display(f'{p.y:.2f}')                 
-            self.odom_yaw_lcd.display(f'{yaw:.2f}')               
+        #     self.odom_x_lcd.display(f'{p.x:.2f}')                 
+        #     self.odom_y_lcd.display(f'{p.y:.2f}')                 
+        #     self.odom_yaw_lcd.display(f'{yaw:.2f}')               
 
         if self.node.last_scan_min is not None:
             self.scan_lineEdit.setText(f'{self.node.last_scan_min:.2f}')    
@@ -663,186 +619,26 @@ class TurtleBot3GUI(QWidget):
             self.goal_x_spinBox.value(),
             self.goal_y_spinBox.value(),
             self.goal_yaw_spinBox.value()
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
         )
 
-        self.sound_combo = QComboBox()
-        self.sound_combo.addItem('효과음 없음', '')
-        self.sound_combo.addItem('start', 'start')
-        self.sound_combo.addItem('waypoint', 'waypoint')
-        self.sound_combo.addItem('goal', 'goal')
-        self.sound_combo.addItem('warning', 'warning')
-        self.sound_combo.addItem('error', 'error')
-
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-        self.volume_spin = QDoubleSpinBox()
-        self.volume_spin.setRange(0.0, 1.0)
-        self.volume_spin.setSingleStep(0.1)
-        self.volume_spin.setValue(1.0)
-
-        self.repeat_spin = QSpinBox()
-        self.repeat_spin.setRange(1, 10)
-        self.repeat_spin.setValue(1)
-
-        self.tts_button = QPushButton('TTS 출력')
-        self.effect_button = QPushButton('효과음 출력')
-        self.tts_effect_button = QPushButton('효과음 + TTS 출력')
-        self.stop_button = QPushButton('재생 정지')
-        self.clear_button = QPushButton('내용 지우기')
-
-        self.status_label = QLabel('대기 중')
-
-        sound_layout = QHBoxLayout()
-        sound_layout.addWidget(QLabel('효과음:'))
-        sound_layout.addWidget(self.sound_combo)
-
-        option_layout = QHBoxLayout()
-        option_layout.addWidget(QLabel('볼륨:'))
-        option_layout.addWidget(self.volume_spin)
-        option_layout.addWidget(QLabel('반복:'))
-        option_layout.addWidget(self.repeat_spin)
-
-        button_layout_1 = QHBoxLayout()
-        button_layout_1.addWidget(self.tts_button)
-        button_layout_1.addWidget(self.effect_button)
-
-        button_layout_2 = QHBoxLayout()
-        button_layout_2.addWidget(self.tts_effect_button)
-        button_layout_2.addWidget(self.stop_button)
-        button_layout_2.addWidget(self.clear_button)
-
-        main_layout = QVBoxLayout()
-        main_layout.addWidget(self.title_label)
-        main_layout.addWidget(self.text_edit)
-        main_layout.addLayout(sound_layout)
-        main_layout.addLayout(option_layout)
-        main_layout.addLayout(button_layout_1)
-        main_layout.addLayout(button_layout_2)
-        main_layout.addWidget(self.status_label)
-
-        self.setLayout(main_layout)
-
-        self.tts_button.clicked.connect(self.publish_tts)
-        self.effect_button.clicked.connect(self.publish_effect)
-        self.tts_effect_button.clicked.connect(self.publish_tts_and_effect)
-        self.stop_button.clicked.connect(self.publish_stop)
-        self.clear_button.clicked.connect(self.clear_text)
-
-        self.spin_timer = QTimer(self)
-        self.spin_timer.timeout.connect(self.spin_ros_once)
-        self.spin_timer.start(20)
-
-    def spin_ros_once(self):
-        rclpy.spin_once(self.ros_node, timeout_sec=0.0)
-
-    def get_text(self):
-        return self.text_edit.toPlainText().strip()
-
-    def get_sound_id(self):
-        return self.sound_combo.currentData()
-
-    def get_volume(self):
-        return self.volume_spin.value()
-
-    def get_repeat(self):
-        return self.repeat_spin.value()
-
-    def publish_tts(self):
-        text = self.get_text()
-
-        if not text:
-            QMessageBox.warning(
-                self,
-                '입력 오류',
-                'TTS로 출력할 문장을 입력하세요.'
-            )
+        self.log('Initial pose published to /initialpose')
+    
+    # 11. 
+    def send_nav_goal(self):
+        if not self.node:
+            self.log('Connect ROS 2 first')
             return
-=======
+        
+        waypoint_name = self.waypoint_combo.currentText()  # GUI창 waypoint_combo에서 선택한 값 -> way
+
         if waypoint_name == '':
-        self.log('선택된 waypoint가 없습니다.')
-        return
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
-
-        self.ros_node.publish_command(
-            command_type=AudioCommand.TYPE_TTS,
-            text=text,
-            sound_id='',
-            volume=self.get_volume(),
-            repeat=self.get_repeat()
-        )
-
-        self.status_label.setText('TTS 명령 발행 완료')
-
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-    def publish_effect(self):
-        sound_id = self.get_sound_id()
-
-        if not sound_id:
-            QMessageBox.warning(
-                self,
-                '선택 오류',
-                '출력할 효과음을 선택하세요.'
-            )
+            self.log('선택된 waypoint가 없습니다.')
             return
 
-        self.ros_node.publish_command(
-            command_type=AudioCommand.TYPE_EFFECT,
-            text='',
-            sound_id=sound_id,
-            volume=self.get_volume(),
-            repeat=self.get_repeat()
-        )
+        ok, text = self.node.go_to_waypoint(waypoint_name)
 
-        self.status_label.setText(f'효과음 명령 발행 완료: {sound_id}')
+        self.log(text)
 
-    def publish_tts_and_effect(self):
-        text = self.get_text()
-        sound_id = self.get_sound_id()
-
-        if not text:
-            QMessageBox.warning(
-                self,
-                '입력 오류',
-                'TTS로 출력할 문장을 입력하세요.'
-            )
-            return
-
-        if not sound_id:
-            QMessageBox.warning(
-                self,
-                '선택 오류',
-                '먼저 출력할 효과음을 선택하세요.'
-            )
-            return
-
-        self.ros_node.publish_command(
-            command_type=AudioCommand.TYPE_TTS_AND_EFFECT,
-            text=text,
-            sound_id=sound_id,
-            volume=self.get_volume(),
-            repeat=self.get_repeat()
-        )
-
-        self.status_label.setText('효과음 + TTS 명령 발행 완료')
-
-    def publish_stop(self):
-        self.ros_node.publish_command(
-            command_type=AudioCommand.TYPE_STOP,
-            text='',
-            sound_id='',
-            volume=1.0,
-            repeat=1
-        )
-
-        self.status_label.setText('재생 정지 명령 발행 완료')
-
-    def clear_text(self):
-        self.text_edit.clear()
-        self.status_label.setText('내용 삭제 완료')
-
-    def closeEvent(self, event):
-        self.spin_timer.stop()
-=======
     '''
         # 12. 
         def cancel_nav_goal(self):
@@ -867,35 +663,21 @@ class TurtleBot3GUI(QWidget):
         if rclpy.ok():
             rclpy.shutdown()
 
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
         event.accept()
 
-
-def main(args=None):
-    rclpy.init(args=args)
-
-    ros_node = AudioCommandPublisher()
-
+def main():
     app = QApplication(sys.argv)
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-    window = AudioGuiWindow(ros_node)
-=======
 
     ros_node = TurtleBot3GuiNode()
 
     window = TurtleBot3GUI(ros_node)
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
     window.show()
 
     exit_code = app.exec_()
 
     ros_node.destroy_node()
-<<<<<<< HEAD:YEYU_turtlebot3_pyqt_gui/tub_plus_nav2.py
-    rclpy.shutdown()
-=======
     if rclpy.ok():
         rclpy.shutdown()
->>>>>>> origin/main:YEYU_turtlebot3_pyqt_gui/tub_plus_nav.py
 
     sys.exit(exit_code)
 
