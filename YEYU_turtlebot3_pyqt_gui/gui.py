@@ -48,7 +48,7 @@ class TurtleBot3GUI(QWidget):
     # 시그널->슬롯 연결
     def connect_signals(self):
         self.connect_PB.clicked.connect(self.connect_ros)                        # connect_PB 클릭 -> 1. connect_ros 실행
-        self.disconnect_PB.clicked.connect(self.disconnect_ros)                  # disconnect_PB 클릭 -> 2. disconnect_ros 실행
+        #self.disconnect_PB.clicked.connect(self.disconnect_ros)                  # disconnect_PB 클릭 -> 2. disconnect_ros 실행
         self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 100. closeEvent 실행
         
         # Launch Control 박스 속 5가지 버튼 시그널 -> 4. run_command() 슬롯 연결 
