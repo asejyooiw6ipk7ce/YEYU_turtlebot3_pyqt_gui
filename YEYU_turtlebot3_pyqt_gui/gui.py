@@ -12,7 +12,6 @@ ROBOT_IP = "192.168.230.100"
 
 ROBOT = f"{ROBOT_USER}@{ROBOT_IP}"
 
-
 class TurtleBot3GUI(QWidget):
     def __init__(self,ros_node):
         super().__init__()
@@ -89,7 +88,8 @@ class TurtleBot3GUI(QWidget):
 
         print('ROS 2 connected')
 
-        self.ros_timer.start(20)  # 100ms마다 울리기
+        # QTimer -> 멀티스레드 방식으로 바꾸면서 주석처리
+        #self.ros_timer.start(20)  # 100ms마다 울리기
 
 
     # 2. disconnect 시그널의 슬롯 ; node 퇴근 , ros_timer 멈춤
@@ -102,7 +102,6 @@ class TurtleBot3GUI(QWidget):
         self.ros_state_lineEdit.setText('Disconnected')                  
         self.log('ROS 2 disconnected')
 
-        self.ros_timer.stop()
 
 
 

@@ -681,7 +681,7 @@ class TurtleBot3GUI(QWidget):
     def show_trajectory_info(self):
         traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져옴 
 
-        if traj_name in self.node.trajectories:
+        if traj_name in self.trajectories:
             wp_names = self.trajectories[traj_name]
             text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
             self.trajectory_label.setText(text)     # 화면에 경로순서 표시
