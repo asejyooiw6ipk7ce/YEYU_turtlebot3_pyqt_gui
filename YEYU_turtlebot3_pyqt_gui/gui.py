@@ -71,7 +71,7 @@ class TurtleBot3GUI(QWidget):
 
         # Nav2 Goal 박스 속 시그널 -> 슬롯 연결
         #self.load_preset_PB.clicked.connect(self.load_preset_goal)         # load_preset_PB 클릭 -> 7. load_preset_goal 실행
-        self.reset_odom_view_PB.clicked.connect(self.reset_odom_display)   # reset_odom_view_PB 클릭 -> 9. reset_odom_display 실행
+        #self.reset_odom_view_PB.clicked.connect(self.reset_odom_display)   # reset_odom_view_PB 클릭 -> 9. reset_odom_display 실행
         
         #self.initial_pose_PB.clicked.connect(self.set_initial_pose)        # initial_pose_PB 클릭 -> 10. set_initial_pose 실행
         #self.send_goal_PB.clicked.connect(self.send_nav_goal)              # send_goal_PB 클릭 -> 11. send_nav_goal 실행
