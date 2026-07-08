@@ -35,7 +35,7 @@ class Nav2WaypointGui(QMainWindow):
         self.yaml_file = yaml_file  # 이 노드 객체 생성할 때 받는 인자의 yaml_file을 self.yaml_file에 저장
                                    ''' 인자로 받는 건 __init__ 나가면 사라짐, self.를 붙이면 이 객체 내부 인스턴스 변수가 됨 '''
 
-				# yaml파일에서 가져올 정보
+		# yaml파일에서 가져올 정보
         self.waypoints = {}         # 단일 목적지 저장할 딕셔너리
         self.trajectories = {}      # 경로(목적지들의 묶음) 저장할 딕셔너리
 
@@ -66,7 +66,7 @@ class Nav2WaypointGui(QMainWindow):
         self.timer.timeout.connect(self.ros_spin_once)   # 타이머가 울리면 -> 1. ros_spin_once 실행
         self.timer.start(50)     # 타이머 0.05초마다 울리기 시작
 
-		
+    
 	# (1) GUI 화면 레이어드 만드는 함수 ; PyQt에서 .ui파일 만드는 거
     def make_gui(self):
         main_widget = QWidget()                # 메인 위젯 생성

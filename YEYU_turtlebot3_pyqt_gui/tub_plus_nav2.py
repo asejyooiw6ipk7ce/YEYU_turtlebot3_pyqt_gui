@@ -34,17 +34,19 @@ class TurtleBot3GuiNode(Node):
         ''' 다른 방식으로 변경(미완성)
         # 인자인 yaml 설정
         self.yaml_file = yaml_file  # 이 노드 객체 생성할 때 받는 인자의 yaml_file을 self.yaml_file에 저장
-                                   ''' 인자로 받는 건 __init__ 나가면 사라짐, self.를 붙이면 이 객체 내부 인스턴스 변수가 됨 '''
+                                    # 인자로 받는 건 __init__ 나가면 사라짐, self.를 붙이면 이 객체 내부 인스턴스 변수가 됨 
         
-        # yaml파일에서 가져올 정보
-        self.waypoints = {}         # 단일 목적지 저장할 딕셔너리
-        self.trajectories = {}      # 경로(목적지들의 묶음) 저장할 딕셔너리
         ''' 
 
         super().__init__('turtlebot3_burger_gui')                         # 부모 생성자 호출 + 노드 이름 지정
         self.signals = RosSignals()
 
+        # pyqt노드에서 
+        self.yaml_file = ''
 
+        # yaml파일에서 가져올 정보
+        self.waypoints = {}         # 단일 목적지 저장할 딕셔너리
+        self.trajectories = {}      # 경로(목적지들의 묶음) 저장할 딕셔너리
 
         # /battery_status 수신자 생성
         self.battery_sub = self.create_subscription(
@@ -347,9 +349,10 @@ class TurtleBot3GuiNode(Node):
         self.last_scan_min = min(values) if values else None
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self,ros_node):
         super().__init__()
         self.signals = RosSignals()
+        self.node = ros_node
 
         # turtlebot3_burger_gui.ui 파일 띄우기
         ui_path = Path(__file__).with_name('turtlebot3_burger_gui.ui')
@@ -593,7 +596,10 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    window = MainWindow()
+
+    ros_node = TurtleBot3GuiNode()
+
+    window = MainWindow(ros_node)
     window.show()
     sys.exit(app.exec_())
 
