@@ -5,23 +5,24 @@ import signal
 import math                                                               # yaw 계산(도->쿼터니언)
 import rclpy                                                              # ros2 client library for python (TurtleBot3GuiNode)
 import yaml
-from rclpy.node import Node                                               # Node 클래스 (TurtleBot3GuiNode(Node))
-from geometry_msgs.msg import Twist                                       # msg
-from nav_msgs.msg import Odometry                                         # msg
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 #from PyQt5.QtCore import QTimer                                          # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
 import threading                                                          # QTimer 대신 멀티스레드 사용
 from PyQt5.QtCore import QObject, pyqtSignal, QProcess                    # RosSignals 클래스 추가시 필요한 것들  
-from geometry_msgs.msg import PoseWithCovarianceStamped                   # ROS2 내비게이션 시스템에서 로봇 위치와 방향 전달할 때 사용되는 msg규격(초기위치 지정할 때 반드시 이 형식으로 보내야 로봇이 이해)
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+
+from rclpy.node import Node                                               # Node 클래스 (TurtleBot3GuiNode(Node))
+from geometry_msgs.msg import Twist                                       # /cmd_vel
+from nav_msgs.msg import Odometry                                         # /odom
 from rclpy.action import ActionClient                                     # 액션 클라이언트
 from nav2_msgs.action import NavigateToPose                               # /navigate_to_pose
 from geometry_msgs.msg import PoseStamped                                 # make_pose()
 from nav2_msgs.action import FollowWaypoints                              # /follow_waypoints
-from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
-from sensor_msgs.msg import LaserScan
-from sensor_msgs.msg import BatteryState                              # [추가] 배터리 상태 토픽 메시지 규격
+from sensor_msgs.msg import LaserScan                                     # /scan
+from sensor_msgs.msg import BatteryState                                  # /battery_status
+
 
 
 ROBOT_USER = "yeyu"
