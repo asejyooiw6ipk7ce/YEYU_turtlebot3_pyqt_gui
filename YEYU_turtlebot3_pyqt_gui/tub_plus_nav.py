@@ -453,9 +453,7 @@ class TurtleBot3GUI(QWidget):
 
         self.ros_timer.stop()
 
-    def spin_ros_once(self):
-        if self.node:
-            rclpy.spin_once(self.node, timeout_sec=0.0)
+
 
     # 3. Launch Control 박스 슬롯 ; 외부 명령어를 실행하고, 실행된 프로세스를 관리리스트(processes)에 저장
     def run_command(self, name, cmd):
@@ -546,29 +544,15 @@ class TurtleBot3GUI(QWidget):
         self.log("Stopping bringup...")
         self.run_ssh('~/tb3_scripts/stop_bringup.sh')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # 6. ros_timer 타이머 울릴 때마다의 슬롯
+    # 7. ros_timer 타이머 울릴 때마다의 슬롯
     def spin_ros_once(self):
         if self.node:                                                      
-            rclpy.spin_once(self.node, timeout_sec=0.0)                    
+            rclpy.spin_once(self.node, timeout_sec=0.0)     
+
+
+
+
+            
 
     # 7. load_preset_PB 시그널의 슬롯
     def load_preset_goal(self):
@@ -595,14 +579,13 @@ class TurtleBot3GUI(QWidget):
 
         odom = self.node.last_odom              
         
-        # quat_to_yaw함수 지웠는데 여기서 호출됨 (미완성)
-        # if odom:                                                  
-        #     p = odom.pose.pose.position                           
-        #     yaw = quaternion_to_yaw(odom.pose.pose.orientation)   
+        if odom:                                                  
+            p = odom.pose.pose.position                           
+            yaw = quaternion_to_yaw(odom.pose.pose.orientation)   
 
-        #     self.odom_x_lcd.display(f'{p.x:.2f}')                 
-        #     self.odom_y_lcd.display(f'{p.y:.2f}')                 
-        #     self.odom_yaw_lcd.display(f'{yaw:.2f}')               
+            self.odom_x_lcd.display(f'{p.x:.2f}')                 
+            self.odom_y_lcd.display(f'{p.y:.2f}')                 
+            self.odom_yaw_lcd.display(f'{yaw:.2f}')               
 
         if self.node.last_scan_min is not None:
             self.scan_lineEdit.setText(f'{self.node.last_scan_min:.2f}')    
