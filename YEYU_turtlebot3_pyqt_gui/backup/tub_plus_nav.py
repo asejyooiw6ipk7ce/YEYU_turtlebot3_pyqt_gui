@@ -727,7 +727,7 @@ def main():
     if not rclpy.ok():
         rclpy.init(args=None)
 
-    ros_node = TurtleBot3GuiNode()
+    ros_node = TurtleBot3RosNode()
 
     # 백그라운드 스레드 생성 및 시작 (rclpy.spin을 통째로 넘김)
     ros_thread = threading.Thread(target=rclpy.spin, args=(ros_node,), daemon=True)
