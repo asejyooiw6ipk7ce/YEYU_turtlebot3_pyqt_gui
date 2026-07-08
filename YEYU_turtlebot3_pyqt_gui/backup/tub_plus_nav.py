@@ -361,7 +361,7 @@ class TurtleBot3RosNode(Node):
         # QTimer 대신 멀티스레드로 바뀌면서 ui_timer의 슬롯 함수 흩어져서 여기도 수정
         #self.last_scan_min = min(values) if values else None
 
-        self.signals.battery_received.emit(msg.percentage * 100.0, msg.voltage)
+        self.signals.scan_received.emit(self.last_scan_min)
 class TurtleBot3GUI(QWidget):
     def __init__(self,ros_node):
         super().__init__()
@@ -438,7 +438,8 @@ class TurtleBot3GUI(QWidget):
 
         print('ROS 2 connected')
 
-        self.ros_timer.start(20)  # 100ms마다 울리기
+        # QTimer -> 멀티스레드 방식으로 바꾸면서 주석처리
+        #self.ros_timer.start(20)  # 100ms마다 울리기
 
 
     # 2. disconnect 시그널의 슬롯 ; node 퇴근 , ros_timer 멈춤
@@ -451,7 +452,6 @@ class TurtleBot3GUI(QWidget):
         self.ros_state_lineEdit.setText('Disconnected')                  
         self.log('ROS 2 disconnected')
 
-        self.ros_timer.stop()
 
 
 
@@ -681,7 +681,7 @@ class TurtleBot3GUI(QWidget):
     def show_trajectory_info(self):
         traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져옴 
 
-        if traj_name in self.trajectories:
+        if traj_name in self.node.trajectories:
             wp_names = self.trajectories[traj_name]
             text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
             self.trajectory_label.setText(text)     # 화면에 경로순서 표시
