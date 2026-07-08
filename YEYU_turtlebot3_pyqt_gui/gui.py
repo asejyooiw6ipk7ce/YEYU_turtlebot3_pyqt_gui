@@ -149,7 +149,7 @@ class TurtleBot3GUI(QWidget):
             return
 
         self.node.publish_cmd(linear, angular)
-        self.current_cmd_lineEdit.setText(f'lin={linear:.2f}, ang={angular:.2f}')  
+        self.current_cmd__vel_lineEdit.setText(f'lin={linear:.2f}, ang={angular:.2f}')  
         self.log(f'cmd_vel: linear={linear:.2f}, angular={angular:.2f}')
     
     # 6. Brindup 버튼의 슬롯 ; ssh로 bringup 스크립트 실행
