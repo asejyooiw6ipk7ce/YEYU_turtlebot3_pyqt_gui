@@ -152,10 +152,7 @@ class TurtleBot3GuiNode(Node):
                 ㄴ> self.signals.log_triggered.emit(list(self.trajectories.keys()))
             '''
 
-        self.signals.log_triggered.emit(list(self.waypoints.keys()))
-        self.signals.log_triggered.emit(list(self.trajectories.keys()))
-
-        self.show_trajectory_info()          # (3) 첫번째 경로 정보 화면에 띄우는 함수
+        self.signals.log_triggered.emit(list(self.waypoints.keys()), list(self.trajectories.keys()))
 
 		# GUI에 로그 출력
         '''
@@ -166,56 +163,7 @@ class TurtleBot3GuiNode(Node):
         self.signals.log_triggered.emit('YAML 로드 완료')
         self.signals.log_triggered.emit(f'Waypoint 개수: {len(self.waypoints)}')
         self.signals.log_triggered.emit(f'Trajectory 개수: {len(self.trajectories)}')
-
-    # load_yaml() 내부에 호출 ; 첫번째 경로 정보 화면에 띄우는 함수
-    def show_trajectory_info(self):
-        traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져옴 
-        '''2. trajectory_combo'''
-
-        if traj_name in self.trajectories:
-            wp_names = self.trajectories[traj_name]
-            text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
-            self.trajectory_label.setText(text)     # 화면에 경로순서 표
-        '''3. trajectory_label'''
-
-    # show_trajectory_info() 내부에 호출
-    def make_pose(self, waypoint_name):
-        wp = self.waypoints[waypoint_name]     # self.waypoints 중 선택한 목적지(waypoint_name) -> wp
-
-        frame_id = wp.get('frame_id', 'map')   # wp 안에 기준좌표계(없으면 map) -> frame_id
-
-        position = wp['pose']['position']      # wp 안에 x,y 데이터 -> position
-        angle = wp['pose']['angle']            # wp 안에 yaw 데이터 -> angle
-
-		# position 안에 x,y 저장
-        x = float(position['x'])               
-        y = float(position['y'])              
-
-        z = 0.0                                 # TurtleBot3 Burger는 2D 주행 로봇이므로 z는 0으로 고정한다.
-
-		# angle -> 쿼터니언 yaw_rad로 
-        yaw_deg = float(angle['yaw'])
-        yaw_rad = math.radians(yaw_deg)
-
-        qz = math.sin(yaw_rad / 2.0)
-        qw = math.cos(yaw_rad / 2.0)
-
-        pose = PoseStamped()                   # ROS2 표준 위치 msg 객체생성
-        pose.header.frame_id = frame_id        # 좌표계 주입
-        pose.header.stamp = self.get_clock().now().to_msg()  # ROS2 타임스탬프 주입
-
-		# pose에 x,y,z,yaw 저장
-        pose.pose.position.x = x
-        pose.pose.position.y = y
-        pose.pose.position.z = z
-
-        pose.pose.orientation.x = 0.0
-        pose.pose.orientation.y = 0.0
-        pose.pose.orientation.z = qz
-        pose.pose.orientation.w = qw
-
-        return pose
-
+        
     # [추가] battery_status 콜백함수 정의
     def battery_callback(self, msg):
         self.last_battery_p = msg.percentage 
@@ -316,7 +264,45 @@ class TurtleBot3GuiNode(Node):
 
         # 요청이 정상적으로 액션 서버에 송신되었음을 GUI에 알림 (튜플 반환)
         return True, f'Waypoint 이동 요청 송신 완료: {waypoint_name}'
-        
+
+     # go_to_waypoints() 내부에 호출
+    def make_pose(self, waypoint_name):
+        wp = self.waypoints[waypoint_name]     # self.waypoints 중 선택한 목적지(waypoint_name) -> wp
+
+        frame_id = wp.get('frame_id', 'map')   # wp 안에 기준좌표계(없으면 map) -> frame_id
+
+        position = wp['pose']['position']      # wp 안에 x,y 데이터 -> position
+        angle = wp['pose']['angle']            # wp 안에 yaw 데이터 -> angle
+
+		# position 안에 x,y 저장
+        x = float(position['x'])               
+        y = float(position['y'])              
+
+        z = 0.0                                 # TurtleBot3 Burger는 2D 주행 로봇이므로 z는 0으로 고정한다.
+
+		# angle -> 쿼터니언 yaw_rad로 
+        yaw_deg = float(angle['yaw'])
+        yaw_rad = math.radians(yaw_deg)
+
+        qz = math.sin(yaw_rad / 2.0)
+        qw = math.cos(yaw_rad / 2.0)
+
+        pose = PoseStamped()                   # ROS2 표준 위치 msg 객체생성
+        pose.header.frame_id = frame_id        # 좌표계 주입
+        pose.header.stamp = self.get_clock().now().to_msg()  # ROS2 타임스탬프 주입
+
+		# pose에 x,y,z,yaw 저장
+        pose.pose.position.x = x
+        pose.pose.position.y = y
+        pose.pose.position.z = z
+
+        pose.pose.orientation.x = 0.0
+        pose.pose.orientation.y = 0.0
+        pose.pose.orientation.z = qz
+        pose.pose.orientation.w = qw
+
+        return pose
+
 
     # 2-1 navigate_client가 요청-> navigate_server 응답시 콜백함수
     def waypoint_goal_response(self, future):
@@ -381,6 +367,8 @@ class TurtleBot3GUI(QWidget):
         self.ui_timer.timeout.connect(self.refresh_robot_status)                # ui_timer에서 알림이 울리면 -> 8. refresh_robot_status 실행
         self.ui_timer.start(200)                                                # 200ms초마다 울리기
 
+        self.node.signals.yaml_loaded.connect(self.update_comboboxes)           # yaml_loaded 신호 왔을 때 -> 13. update_comboboxes 실행
+
     # print 대신 self.log()로
     def log(self, text):
         self.log_listWidget.addItem(text)
@@ -390,7 +378,7 @@ class TurtleBot3GUI(QWidget):
     def connect_signals(self):
         self.connect_PB.clicked.connect(self.connect_ros)                        # connect_PB 클릭 -> 1. connect_ros 실행
         self.disconnect_PB.clicked.connect(self.disconnect_ros)                  # disconnect_PB 클릭 -> 2. disconnect_ros 실행
-        self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 13. closeEvent 실행
+        self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 100. closeEvent 실행
         
         # Launch Control 박스 속 5가지 버튼 시그널 -> 4. run_command() 슬롯 연결 
         self.connect_PB.clicked.connect (self.connect_ros)
@@ -652,7 +640,29 @@ class TurtleBot3GUI(QWidget):
                 self.log('No active goal handle')
     '''
 
-    # 13. 
+    # 13. yaml_loaded 신호 시그널의 플롯 함수
+    def update_comboboxes(self,wp_names,traj_names):
+        # 콤보박스 초기화 후 데이터 추가
+        self.waypoint_combo.clear()
+        self.trajectory_combo.clear()
+
+        # UI 작업 수행
+        self.waypoint_combo.addItems(wp_names)
+        self.trajectory_combo.addItems(traj_names)
+
+        # (3) 첫번째 경로 정보 화면에 띄우는 함수 호출
+        self.show_trajectory_info()
+
+    # 13-(1) 내부에 호출 ; 첫번째 경로 정보 화면에 띄우는 함수
+    def show_trajectory_info(self):
+        traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져옴 
+
+        if traj_name in self.trajectories:
+            wp_names = self.trajectories[traj_name]
+            text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
+            self.trajectory_label.setText(text)     # 화면에 경로순서 표시
+
+    # 100. 
     def closeEvent(self, event):
         if self.node:
             self.send_velocity(0.0, 0.0)
