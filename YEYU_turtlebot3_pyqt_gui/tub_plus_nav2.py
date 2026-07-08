@@ -11,6 +11,7 @@ from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QMainWindow
 from PyQt5.QtCore import QTimer                                           # PYQT5 루프를 굴리면서 ROS2 루프 굴리기 위해 QTimer 데려옴
+from PyQt5.QtCore import QObject, pyqtSignal                              # RosSignals 클래스 추가시 필요한 것들  
 from geometry_msgs.msg import PoseWithCovarianceStamped                   # ROS2 내비게이션 시스템에서 로봇 위치와 방향 전달할 때 사용되는 msg규격(초기위치 지정할 때 반드시 이 형식으로 보내야 로봇이 이해)
 from rclpy.action import ActionClient                                     # /navigate_to_pose
 from nav2_msgs.action import NavigateToPose                               # /navigate_to_pose
@@ -19,91 +20,72 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import BatteryState                                  # [추가] 배터리 상태 토픽 메시지 규격
 
+# ros2 콜백 - PyQt 테이터 전달
+class RosSignals(QObject):
+	# 문자열 전달할 수 있는 Qt 시그널 정의
+    yaml_loaded = pyqtSignal(list)      
+    log_triggered = pyqtSignal(str)
+    '''신호통로    이 통로로는 list 데이터만 보낼거야(통로 종류 지정) '''
+
 
 class TurtleBot3GuiNode(Node):
-    def __init__(self, namespace=''):                                     # 클래스 생성자. namespace값 인자로 받음(로봇 여러대면 구분하기 위해)
+    def __init__(self):                                     # 클래스 생성자. 
+
+        ''' 다른 방식으로 변경(미완성)
+        # 인자인 yaml 설정
+        self.yaml_file = yaml_file  # 이 노드 객체 생성할 때 받는 인자의 yaml_file을 self.yaml_file에 저장
+                                   ''' 인자로 받는 건 __init__ 나가면 사라짐, self.를 붙이면 이 객체 내부 인스턴스 변수가 됨 '''
+        
+        # yaml파일에서 가져올 정보
+        self.waypoints = {}         # 단일 목적지 저장할 딕셔너리
+        self.trajectories = {}      # 경로(목적지들의 묶음) 저장할 딕셔너리
+        ''' 
+
         super().__init__('turtlebot3_burger_gui')                         # 부모 생성자 호출 + 노드 이름 지정
+        self.signals = RosSignals()
 
-        # namespace 입력값에서 뽑아오기
-        namespace = namespace.strip()                                     # '입력값 ' -> '입력값'
-        if namespace.lower() in ['', 'empty', 'none', '/']:               # 사용자가 "empty", "none", "/" 등을 넣으면 namespace 없음으로 처리
-            namespace = ''
-        namespace = namespace.strip('/')                                  # '/입력값/' -> '입력값'
 
-        '''[/battery_state 수신 추가]'''
-        if namespace:
-            battery_topic = f'/{namespace}/battery_state'
-        else:
-            battery_topic = '/battery_state'
 
+        # /battery_status 수신자 생성
         self.battery_sub = self.create_subscription(
             BatteryState, 
-            battery_topic,
+            '/battery_status',
             self.battery_callback,
             10
         )
         self.last_battery_p = None
         self.last_battery_v = None
+                            
 
-        '''[/cmd_vel 발행]'''
-        # cmd_topic 정의
-        if namespace:
-            cmd_topic = f'/{namespace}/cmd_vel'                           # ex. /tb3_01/cmd_vel
-        else:
-            cmd_topic = '/cmd_vel'                                        
-
-        # cmd_topic 발행자 생성
+        # /cmd_vel 발행자 생성
         self.cmd_pub = self.create_publisher(
             Twist,
-            cmd_topic,
+            '/cmd_vel',
             10
         )
-    
-        '''[/odom 수신]'''
-        # odom_topic 정의
-        if namespace:
-            odom_topic = f'/{namespace}/odom'
-        else:
-            odom_topic = '/odom'
 
-        # odom_topic 수신자 생성
+        # /odom 수신자 생성
         self.odom_sub = self.create_subscription(
             Odometry,
-            odom_topic,
+            '/odom',
             self.odom_callback,
             10
         )
-
         self.last_odom = None
 
-        '''[/initialpose 발행]'''
-        # initpos_topic 정의
-        if namespace:
-            initpos_topic = f'/{namespace}/initialpose'
-        else:
-            initpos_topic = '/initialpose'
-
-        # initpos_topic 발행자 생성
+        # /initialpose 발행자 생성
         self.initial_pose_pub = self.create_publisher(
             PoseWithCovarianceStamped,
-            initpos_topic,
+            '/initialpose',
             10
         )
 
-        '''[/navigate_to_pose 액션 클라이언트]'''
-        # navpose_topic 정의
-        if namespace:
-            navpos_topic = f'/{namespace}/navigate_to_pose'
-        else:
-            navpos_topic = '/navigate_to_pose'
-
-        # navpose_topic 액션클라이언트 생성
+        # navigate_to_pose 액션클라이언트 생성
         self.nav_client = ActionClient(
             self,
             NavigateToPose,
-            navpos_topic
+            'navigate_to_pose'
         )
-
         self.goal_handle = None
 
         '''[/scan 수신]'''
@@ -113,21 +95,120 @@ class TurtleBot3GuiNode(Node):
             depth=10
         )
 
-        # scan_topic 정의
-        if namespace:
-            scan_topic = f'/{namespace}/scan'
-        else:
-            scan_topic = '/scan'
-
-        # scan_topic 수신자 정의
+        # scan 수신자 정의
         self.scan_sub = self.create_subscription(
             LaserScan,
-            scan_topic,
+            '/scan',
             self.scan_callback,
             qos_profile
         )
-
         self.last_scan_min = None
+
+        ''''[경유점 순자 주행]'''
+        # follow_waypoints 액션클라이언트 생성
+        self.follow_client = ActionClient(
+            self.node,
+            FollowWaypoints,
+            'follow_waypoints'
+        )
+
+	# YAML 파일 읽어서 데이터 채우는 함수
+    def load_yaml(self):
+		# YAML 내용 -> 파이썬 딕셔너리 구조로 변환 - data에 저장
+        with open(self.yaml_file, 'r', encoding='utf-8') as f:
+            data = yaml.safe_load(f)
+
+		# data에서 읽은 데이터 waypoint_list,trajectory_list에 저장
+        ''' 
+        # waypoint_list의 실제 모습
+        waypoint_list = [
+            {"name": "point1", "frame_id": "map", "pose": {...}},  # [0]번 상자
+            {"name": "point2", "frame_id": "map", "pose": {...}}   # [1]번 상자
+        ]
+        '''
+        waypoint_list = data['waypoints']
+        trajectory_list = data['trajectories']
+				
+		# waypoint_list 리스트 -> self.waypoints 딕셔너리로 정제
+        for wp in waypoint_list:
+            name = wp['name']                 # waypoint_list에 있는 첫번째 딕셔너리에서 name 내용 ex. point1
+            self.waypoints[name] = wp         # 딕셔너리에 데이터 추가(키,값)
+            '''self.waypoint_combo.addItem(name)  # GUI 콤보박스(waypoint_combo)에 추가
+               ㄴ> self.signals.log_triggered.emit(list(self.waypoints.keys()))
+            '''
+
+		# trajectory_list 리스트 -> self.trajectories 딕셔너리로 정제
+        for traj in trajectory_list:
+            name = traj['name']
+            wp_names = traj['waypoints']
+            self.trajectories[name] = wp_names
+            '''self.trajectory_combo.addItem(name)
+                ㄴ> self.signals.log_triggered.emit(list(self.trajectories.keys()))
+            '''
+
+        self.signals.log_triggered.emit(list(self.waypoints.keys()))
+        self.signals.log_triggered.emit(list(self.trajectories.keys()))
+
+        self.show_trajectory_info()          # (3) 첫번째 경로 정보 화면에 띄우는 함수
+
+		# GUI에 로그 출력
+        '''
+        self.log('YAML 로드 완료')
+        self.log(f'Waypoint 개수: {len(self.waypoints)}')
+        self.log(f'Trajectory 개수: {len(self.trajectories)}')
+        '''
+        self.signals.log_triggered.emit('YAML 로드 완료')
+        self.signals.log_triggered.emit(f'Waypoint 개수: {len(self.waypoints)}')
+        self.signals.log_triggered.emit(f'Trajectory 개수: {len(self.trajectories)}')
+
+    # load_yaml() 내부에 호출 ; 첫번째 경로 정보 화면에 띄우는 함수
+    def show_trajectory_info(self):
+        traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져옴 
+'''2. trajectory_combo'''
+
+        if traj_name in self.trajectories:
+            wp_names = self.trajectories[traj_name]
+            text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
+            self.trajectory_label.setText(text)     # 화면에 경로순서 표
+'''3. trajectory_label'''
+
+        # show_trajectory_info() 내부에 호출
+        def make_pose(self, waypoint_name):
+        wp = self.waypoints[waypoint_name]     # self.waypoints 중 선택한 목적지(waypoint_name) -> wp
+
+        frame_id = wp.get('frame_id', 'map')   # wp 안에 기준좌표계(없으면 map) -> frame_id
+
+        position = wp['pose']['position']      # wp 안에 x,y 데이터 -> position
+        angle = wp['pose']['angle']            # wp 안에 yaw 데이터 -> angle
+
+		# position 안에 x,y 저장
+        x = float(position['x'])               
+        y = float(position['y'])              
+
+        z = 0.0                                 # TurtleBot3 Burger는 2D 주행 로봇이므로 z는 0으로 고정한다.
+
+		# angle -> 쿼터니언 yaw_rad로 
+        yaw_deg = float(angle['yaw'])
+        yaw_rad = math.radians(yaw_deg)
+
+        qz = math.sin(yaw_rad / 2.0)
+        qw = math.cos(yaw_rad / 2.0)
+
+        pose = PoseStamped()                   # ROS2 표준 위치 msg 객체생성
+        pose.header.frame_id = frame_id        # 좌표계 주입
+        pose.header.stamp = self.node.get_clock().now().to_msg()  # ROS2 타임스탬프 주입
+
+		# pose에 x,y,z,yaw 저장
+        pose.pose.position.x = x
+        pose.pose.position.y = y
+        pose.pose.position.z = z
+
+        pose.pose.orientation.x = 0.0
+        pose.pose.orientation.y = 0.0
+        pose.pose.orientation.z = qz
+        pose.pose.orientation.w = qw
+
+        return pose
 
     # [추가] battery_status 콜백함수 정의
     def battery_callback(self, msg):
@@ -170,41 +251,84 @@ class TurtleBot3GuiNode(Node):
         # 발행
         self.initial_pose_pub.publish(msg)   
     
-    # navpose_topic 액션클라이언트 ; goal 전송 함수
-    def send_goal(self, x, y, yaw):
-        goal_msg = NavigateToPose.Goal()
+    # # navpose_topic 액션클라이언트 ; goal 전송 함수
+    # def send_goal(self, x, y, yaw):
+    #     goal_msg = NavigateToPose.Goal()
 
-        goal_msg.pose = PoseStamped()
-        goal_msg.pose.header.frame_id = 'map'
-        goal_msg.pose.header.stamp = self.get_clock().now().to_msg()
+    #     goal_msg.pose = PoseStamped()
+    #     goal_msg.pose.header.frame_id = 'map'
+    #     goal_msg.pose.header.stamp = self.get_clock().now().to_msg()
 
-        goal_msg.pose.pose.position.x = float(x)
-        goal_msg.pose.pose.position.y = float(y)
+    #     goal_msg.pose.pose.position.x = float(x)
+    #     goal_msg.pose.pose.position.y = float(y)
 
-        qx, qy, qz, qw = yaw_to_quaternion(yaw)
+    #     qx, qy, qz, qw = yaw_to_quaternion(yaw)
 
-        goal_msg.pose.pose.orientation.x = qx
-        goal_msg.pose.pose.orientation.y = qy
-        goal_msg.pose.pose.orientation.z = qz
-        goal_msg.pose.pose.orientation.w = qw
+    #     goal_msg.pose.pose.orientation.x = qx
+    #     goal_msg.pose.pose.orientation.y = qy
+    #     goal_msg.pose.pose.orientation.z = qz
+    #     goal_msg.pose.pose.orientation.w = qw
 
-        if not self.nav_client.wait_for_server(timeout_sec=1.0):
-            return False, 'Nav2 action server is not available'
+    #     if not self.nav_client.wait_for_server(timeout_sec=1.0):
+    #         return False, 'Nav2 action server is not available'
 
-        future = self.nav_client.send_goal_async(goal_msg)
-        future.add_done_callback(self._goal_response_callback)
+    #     future = self.nav_client.send_goal_async(goal_msg)
+    #     future.add_done_callback(self._goal_response_callback)
 
-        return True, f'Goal sent: x={x:.2f}, y={y:.2f}, yaw={yaw:.2f}'
+    #     return True, f'Goal sent: x={x:.2f}, y={y:.2f}, yaw={yaw:.2f}'
     
-    # navpose_topic 액션클라이언트 ; goal 응답 피드백 함수
-    def _goal_response_callback(self, future):
-        self.goal_handle = future.result()
+    # # navpose_topic 액션클라이언트 ; goal 응답 피드백 함수
+    # def _goal_response_callback(self, future):
+    #     self.goal_handle = future.result()
 
-        if self.goal_handle and self.goal_handle.accepted:
-            self.get_logger().info('Goal accepted')
-        else:
-            self.get_logger().warn('Goal rejected')
+    #     if self.goal_handle and self.goal_handle.accepted:
+    #         self.get_logger().info('Goal accepted')
+    #     else:
+    #         self.get_logger().warn('Goal rejected')
 
+    # 2. waypoint_button 클릭의 슬롯함수 ; 단일 목적지 액션 통신 기능
+    def go_to_waypoint(self,waypoint_name):
+
+        if waypoint_name == '':
+            self.log('선택된 waypoint가 없습니다.')
+            return
+
+		# 1초동안 Nav2 액션서버 켜져있는지 확인 -> 안켜져있음 빠져나감
+        if not self.navigate_client.wait_for_server(timeout_sec=1.0):
+            self.log('/navigate_to_pose 액션 서버가 준비되지 않았습니다.')
+            return
+
+        goal_msg = NavigateToPose.Goal()                 # 액션 목적지 NavigateToPose메세지 생성
+        goal_msg.pose = self.make_pose(waypoint_name)    # waypoint_name -> msg.pose(goal)
+        goal_msg.behavior_tree = ''                      # msg.behavior_tree 공란으로 설정
+
+        self.log(f'Waypoint 이동 요청: {waypoint_name}')
+
+        # navigat_client에게 비동기(async) 명령 - goal_msg 좌표로 이동해줘
+        future = self.navigate_client.send_goal_async(goal_msg)
+        future.add_done_callback(self.waypoint_goal_response) # 서버가 수락거절 응답 오면 -> (4) waypoint_goal_response 실행
+
+    # 2-1 navigate_client가 요청-> navigate_server 응답시 콜백함수
+    def waypoint_goal_response(self, future):
+        goal_handle = future.result()              # future.result(요청결과) -> goal_handle
+
+        # 서버 명령 거절
+        if not goal_handle.accepted:                
+            self.log('Waypoint goal이 거부되었습니다.')
+            return
+
+        # 서버 명령 수락
+        self.log('Waypoint goal이 수락되었습니다.')
+
+        # navigat_client에게 비동기(async) 명령 - 방금 주문 실시간 공유해줘
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(self.waypoint_result) # 도착 완료 응답 -> (5) waypoint_result 콜백
+
+    # 2-2 in(4) navigate_server 응답시 콜백함수
+    def waypoint_result(self, future):
+        self.log('Waypoint 이동 완료')  # 도착 성공 로그
+
+'''
     # navpose_topic 액션클라이언트 ; goal 취소
     def cancel_goal(self):
         if self.goal_handle:
@@ -212,7 +336,7 @@ class TurtleBot3GuiNode(Node):
             return True
 
         return False
-    
+'''    
     # scan_topic 콜백함수
     def scan_callback(self, msg):
         values = [
@@ -225,6 +349,7 @@ class TurtleBot3GuiNode(Node):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.signals = RosSignals()
 
         # turtlebot3_burger_gui.ui 파일 띄우기
         ui_path = Path(__file__).with_name('turtlebot3_burger_gui.ui')
@@ -274,9 +399,11 @@ class MainWindow(QMainWindow):
         # Nav2 Goal 박스 속 시그널 -> 슬롯 연결
         self.load_preset_PB.clicked.connect(self.load_preset_goal)         # load_preset_PB 클릭 -> 7. load_preset_goal 실행
         self.reset_odom_view_PB.clicked.connect(self.reset_odom_display)   # reset_odom_view_PB 클릭 -> 9. reset_odom_display 실행
-        self.initial_pose_PB.clicked.connect(self.set_initial_pose)        # initial_pose_PB 클릭 -> 10. set_initial_pose 실행
-        self.send_goal_PB.clicked.connect(self.send_nav_goal)              # send_goal_PB 클릭 -> 11. send_nav_goal 실행
-        self.cancel_goal_PB.clicked.connect(self.cancel_nav_goal)          # cancel_goal_PB 클릭 -> 12. cancel_nav_goal 실행
+        
+        self.
+        #self.initial_pose_PB.clicked.connect(self.set_initial_pose)        # initial_pose_PB 클릭 -> 10. set_initial_pose 실행
+        #self.send_goal_PB.clicked.connect(self.send_nav_goal)              # send_goal_PB 클릭 -> 11. send_nav_goal 실행
+        #self.cancel_goal_PB.clicked.connect(self.cancel_nav_goal)          # cancel_goal_PB 클릭 -> 12. cancel_nav_goal 실행
 
 
     # [슬롯 함수]
@@ -427,15 +554,18 @@ class MainWindow(QMainWindow):
         if not self.node:
             self.log('Connect ROS 2 first')
             return
+        
+        waypoint_name = self.waypoint_combo.currentText()  # GUI창 waypoint_combo에서 선택한 값 -> way
 
-        ok, text = self.node.send_goal(
-            self.goal_x_spinBox.value(),
-            self.goal_y_spinBox.value(),
-            self.goal_yaw_spinBox.value()
-        )
+        if waypoint_name == '':
+        self.log('선택된 waypoint가 없습니다.')
+        return
+
+        ok, text = self.node.go_to_waypoint(waypoint_name)
 
         self.log(text)
 
+'''
     # 12. 
     def cancel_nav_goal(self):
         if not self.node:
@@ -446,6 +576,7 @@ class MainWindow(QMainWindow):
             self.log('Goal cancel requested')
         else:
             self.log('No active goal handle')
+'''
 
     # 13. 
     def closeEvent(self, event):
