@@ -28,6 +28,11 @@ ROBOT_IP = "192.168.230.100"
 ROBOT = f"{ROBOT_USER}@{ROBOT_IP}"
 
 
+def quaternion_to_yaw(q):
+    siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+    cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+    return math.atan2(siny_cosp, cosy_cosp)
+
 # ros2 콜백 - PyQt 테이터 전달
 class RosSignals(QObject):
 	# 문자열 전달할 수 있는 Qt 시그널 정의
@@ -433,6 +438,8 @@ class TurtleBot3GUI(QWidget):
 
         print('ROS 2 connected')
 
+        self.ros_timer.start(20)  # 100ms마다 울리기
+
 
     # 2. disconnect 시그널의 슬롯 ; node 퇴근 , ros_timer 멈춤
     def disconnect_ros(self):
@@ -443,6 +450,12 @@ class TurtleBot3GUI(QWidget):
         self.ros_timer.stop()         
         self.ros_state_lineEdit.setText('Disconnected')                  
         self.log('ROS 2 disconnected')
+
+        self.ros_timer.stop()
+
+    def spin_ros_once(self):
+        if self.node:
+            rclpy.spin_once(self.node, timeout_sec=0.0)
 
     # 3. Launch Control 박스 슬롯 ; 외부 명령어를 실행하고, 실행된 프로세스를 관리리스트(processes)에 저장
     def run_command(self, name, cmd):
@@ -487,7 +500,7 @@ class TurtleBot3GUI(QWidget):
             return
 
         self.node.publish_cmd(linear, angular)
-        self.cmd_lineEdit.setText(f'lin={linear:.2f}, ang={angular:.2f}')  
+        self.current_cmd_lineEdit.setText(f'lin={linear:.2f}, ang={angular:.2f}')  
         self.log(f'cmd_vel: linear={linear:.2f}, angular={angular:.2f}')
     
     # 6. Brindup 버튼의 슬롯 ; ssh로 bringup 스크립트 실행
