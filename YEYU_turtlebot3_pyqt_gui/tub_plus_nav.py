@@ -15,10 +15,10 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget
 import threading                                                          # QTimer 대신 멀티스레드 사용
 from PyQt5.QtCore import QObject, pyqtSignal, QProcess                    # RosSignals 클래스 추가시 필요한 것들  
 from geometry_msgs.msg import PoseWithCovarianceStamped                   # ROS2 내비게이션 시스템에서 로봇 위치와 방향 전달할 때 사용되는 msg규격(초기위치 지정할 때 반드시 이 형식으로 보내야 로봇이 이해)
-from rclpy.action import ActionClient                                     # /navigate_to_pose
+from rclpy.action import ActionClient                                     # 액션 클라이언트
 from nav2_msgs.action import NavigateToPose                               # /navigate_to_pose
-from geometry_msgs.msg import PoseStamped                                 # /navigate_to_pose
-from nav2_msgs.action import FollowWaypoints  # /follow_waypoints
+from geometry_msgs.msg import PoseStamped                                 # make_pose()
+from nav2_msgs.action import FollowWaypoints                              # /follow_waypoints
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from sensor_msgs.msg import LaserScan
 from sensor_msgs.msg import BatteryState                              # [추가] 배터리 상태 토픽 메시지 규격
