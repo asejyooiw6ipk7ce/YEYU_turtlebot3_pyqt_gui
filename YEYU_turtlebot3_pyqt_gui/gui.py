@@ -6,6 +6,7 @@ from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtCore import QProcess
 from PyQt5.QtWidgets import QWidget
+from qt_signals import RosSignals
 
 ROBOT_USER = "yeyu"
 ROBOT_IP = "192.168.230.100"
