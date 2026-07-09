@@ -77,6 +77,7 @@ class TurtleBot3RosNode(Node):
             10
         )
 
+        '''
         # navigate_to_pose 액션클라이언트 생성
         self.navigate_client = ActionClient(
             self,
@@ -84,15 +85,14 @@ class TurtleBot3RosNode(Node):
             'navigate_to_pose'
         )
         self.goal_handle = None
+        '''
 
-        '''[/scan 수신]'''
+        #/scan 수신
         qos_profile = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
             depth=10
         )
-
-        # scan 수신자 정의
         self.scan_sub = self.create_subscription(
             LaserScan,
             '/scan',
@@ -101,8 +101,7 @@ class TurtleBot3RosNode(Node):
         )
         self.last_scan_min = None
 
-        ''''[경유점 순자 주행]'''
-        # follow_waypoints 액션클라이언트 생성
+        # 경유점 순자 주행 액션클라이언트 생성
         self.follow_client = ActionClient(
             self,
             FollowWaypoints,
@@ -130,7 +129,7 @@ class TurtleBot3RosNode(Node):
         for wp in waypoint_list:
             name = wp['name']                 # waypoint_list에 있는 첫번째 딕셔너리에서 name 내용 ex. point1
             self.waypoints[name] = wp         # 딕셔너리에 데이터 추가(키,값)
-            '''self.waypoint_combo.addItem(name)  # GUI 콤보박스(waypoint_combo)에 추가
+            '''self.waypoint_combo.addItem(name)   #nav2_waypoint_gui.py에 있는 내용(GUI에 해당)
                ㄴ> self.signals.log_triggered.emit(list(self.waypoints.keys()))
             '''
 
@@ -139,11 +138,11 @@ class TurtleBot3RosNode(Node):
             name = traj['name']
             wp_names = traj['waypoints']
             self.trajectories[name] = wp_names
-            '''self.trajectory_combo.addItem(name)
+            '''self.trajectory_combo.addItem(name)  
                 ㄴ> self.signals.log_triggered.emit(list(self.trajectories.keys()))
             '''
 
-        self.signals.yaml_loaded.emit(list(self.waypoints.keys()), list(self.trajectories.keys()))
+        self.signals.yaml_loaded.emit(list(self.trajectories.keys())) # (list,list) -> (list)로 변경
 
 		# GUI에 로그 출력
         '''

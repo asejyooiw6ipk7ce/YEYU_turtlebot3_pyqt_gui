@@ -4,7 +4,7 @@ from PyQt5.QtCore import QObject, pyqtSignal, QProcess                    # RosS
 # ros2 콜백 - PyQt 테이터 전달
 class RosSignals(QObject):
 	# 문자열 전달할 수 있는 Qt 시그널 정의
-    yaml_loaded = pyqtSignal(list,list)      
+    yaml_loaded = pyqtSignal(list)    #yaml_loaded = pyqtSignal(list,list) -> (list)로 변경      
     log_triggered = pyqtSignal(str)
     '''신호통로    이 통로로는 list 데이터만 보낼거야(통로 종류 지정) '''
 
