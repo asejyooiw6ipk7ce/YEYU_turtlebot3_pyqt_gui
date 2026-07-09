@@ -355,7 +355,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="load_load_PB">
+           <widget class="QPushButton" name="yaml_load_PB">
             <property name="text">
              <string>Load YAML</string>
             </property>
