@@ -180,7 +180,7 @@ class TurtleBot3GUI(QWidget):
 
 
     # yaml_loaded 신호의 슬롯
-    def update_comboboxes(self, traj_names):
+    def update_comboboxes(self, wp_names, traj_names):
         self.waypoint_combo.clear()
         self.waypoint_combo.addItems(wp_names)
         self.trajectory_combo.clear()
@@ -234,6 +234,7 @@ class TurtleBot3GUI(QWidget):
         )                                 # 결과 : ("/home/user/waypoints.yaml", "YAML Files (*.yaml *.yml)")
         self.yaml_path_lineEdit.setText(path) 
         self.node.yaml_file = path
+        self.node.load_yaml()
 
     # trajectory_button 클릭 시그널의 슬롯
     def go_to_trajectory(self):
