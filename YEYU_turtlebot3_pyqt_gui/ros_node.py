@@ -100,24 +100,34 @@ class TurtleBot3RosNode(Node):
         twist.angular.z = angular
         self.cmd_vel_pub.publish(twist)
 
-    '''
     def go_to_waypoint(self, wp_name):
-        """단일 주행 함수 보정"""
+        """단일 경유점으로 이동 (waypoint_combo + waypoint_go_PB 에서 호출)"""
         if wp_name not in self.waypoints:
             self.signals.log_triggered.emit(f'존재하지 않는 경유점입니다: {wp_name}')
             return
-            
+
         if not self.navigate_client.wait_for_server(timeout_sec=1.0):
             self.signals.log_triggered.emit('NavigateToPose 액션 서버를 사용할 수 없습니다.')
             return
-            
+
         goal_msg = NavigateToPose.Goal()
         goal_msg.pose = self.make_pose(wp_name)
-        
+
         self.signals.log_triggered.emit(f'{wp_name}(으)로 이동 명령 송신 중...')
         send_goal_future = self.navigate_client.send_goal_async(goal_msg)
         send_goal_future.add_done_callback(self.waypoint_goal_response)
-    '''
+
+    def waypoint_goal_response(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.signals.log_triggered.emit('경유점 이동 요청이 거부되었습니다.')
+            return
+        self.signals.log_triggered.emit('경유점 이동 요청이 서버에서 수락되었습니다.')
+        result_future = goal_handle.get_result_async()
+        result_future.add_done_callback(self.waypoint_result)
+
+    def waypoint_result(self, future):
+        self.signals.log_triggered.emit('경유점 이동 완료!')
 
     def make_pose(self, waypoint_name):
         wp = self.waypoints[waypoint_name]
@@ -151,24 +161,24 @@ class TurtleBot3RosNode(Node):
             self.signals.log_triggered.emit(f'존재하지 않는 경로명입니다: {traj_name}')
             return
             
-        if not self.follow_client.wait_for_server(timeout_sec=1.0):
+        if not self.waypoint_client.wait_for_server(timeout_sec=1.0):
             self.signals.log_triggered.emit('/follow_waypoints 액션 서버가 준비되지 않았습니다.')
             return
-            
+
         waypoint_names = self.trajectories[traj_name]
         poses = []
-        
+
         for name in waypoint_names:
             if name not in self.waypoints:
                 self.signals.log_triggered.emit(f'YAML에 없는 경유점이 경로에 포함되어 있습니다: {name}')
                 return
-            poses.append(self.make_pose_from_wp(name))
-            
+            poses.append(self.make_pose(name))
+
         goal_msg = FollowWaypoints.Goal()
         goal_msg.poses = poses
-        
+
         self.signals.log_triggered.emit(f'Trajectory 순차 주행 요청: {traj_name} (경유점 {len(poses)}개)')
-        send_goal_future = self.follow_client.send_goal_async(goal_msg)
+        send_goal_future = self.waypoint_client.send_goal_async(goal_msg)
         send_goal_future.add_done_callback(self.trajectory_goal_response)
 
     def trajectory_goal_response(self, future):

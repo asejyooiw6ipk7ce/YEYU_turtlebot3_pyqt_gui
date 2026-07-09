@@ -8,7 +8,7 @@ import rclpy
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtCore import QProcess
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtWidgets import QWidget, QFileDialog
 from qt_signals import RosSignals
 
 ROBOT_USER = "yeyu"
@@ -43,6 +43,27 @@ class TurtleBot3GUI(QWidget):
         self.signals.scan_received.connect(self.update_scan_ui)
         self.signals.battery_received.connect(self.update_battery_ui)
         self.trajectory_button.clicked.connect(self.start_trajectory_navigation)
+        self.yaml_load_PB.clicked.connect(self.open_yaml_file)
+        self.waypoint_go_PB.clicked.connect(self.start_waypoint_navigation)
+
+    def open_yaml_file(self):
+        """YAML 파일을 선택해 경유점/경로 데이터를 불러옵니다."""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "YAML 파일 선택", "", "YAML Files (*.yaml *.yml)"
+        )
+        if not file_path:
+            return
+
+        self.yaml_path_lineEdit.setText(file_path)
+        self.node.load_yaml(file_path)
+
+    def start_waypoint_navigation(self):
+        """선택된 단일 경유점으로 이동 시작"""
+        wp_name = self.waypoint_combo.currentText()
+        if wp_name:
+            self.node.go_to_waypoint(wp_name)
+        else:
+            self.log("선택된 Waypoint가 없습니다.")
 
     def start_trajectory_navigation(self):
         """순차 목적지 주행 시작"""
