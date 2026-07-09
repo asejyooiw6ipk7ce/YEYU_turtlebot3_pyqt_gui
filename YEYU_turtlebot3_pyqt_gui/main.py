@@ -10,6 +10,7 @@ from ros_node import TurtleBot3RosNode
 from gui import TurtleBot3GUI
 
 def main():
+    os.environ['ROS_DOMAIN_ID'] = '40'
     app = QApplication(sys.argv)
 
     if not rclpy.ok():
