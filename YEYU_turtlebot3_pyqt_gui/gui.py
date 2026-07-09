@@ -231,6 +231,7 @@ class TurtleBot3GUI(QWidget):
             "YAML Files (*.yaml *.yml)"   # 확장자가 yaml,yml인 파일만 필터링
         )                                 # 결과 : ("/home/user/waypoints.yaml", "YAML Files (*.yaml *.yml)")
         self.yaml_path_lineEdit.setText(path) 
+        self.node.yaml_file = path
 
     # trajectory_button 클릭 시그널의 슬롯
     def go_to_trajectory(self):
