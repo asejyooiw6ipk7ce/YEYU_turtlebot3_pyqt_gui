@@ -16,3 +16,11 @@ waypoints:
   x: 0.446
   y: 0.587
   yaw: 1.37
+
+trajectories:
+- name: course1
+  waypoints: [wp1, wp2, wp3]
+- name: course2_reverse
+  waypoints: [wp3, wp2, wp1]
+- name: course3
+  waypoints: [wp2, wp1, wp3]
