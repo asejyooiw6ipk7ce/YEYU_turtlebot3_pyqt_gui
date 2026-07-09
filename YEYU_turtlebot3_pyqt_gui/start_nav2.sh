@@ -17,5 +17,5 @@ ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=/home/ktel/pyqt_ws
 
 echo $! > "$PID_FILE"
 
-echo "STARTED"
+echo "NAV2 STARTED"
 
