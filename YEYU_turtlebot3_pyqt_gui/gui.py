@@ -52,7 +52,7 @@ class TurtleBot3GUI(QWidget):
         # self.disconnect_PB.clicked.connect(self.disconnect_ros)
         # self.exit_PB.clicked.connect(self.closeEvent)
         self.bringup_PB.clicked.connect(self.bringup_ros)
-        self.nav2_PB.clicked.connect(self.self.run_local('/home/ktel/pyqt_ws/src/YEYU_turtlebot3_pyqt_gui/YEYU_turtlebot3_pyqt_gui/start_nav2.sh'))
+        self.nav2_PB.clicked.connect(self.run_local('/home/ktel/pyqt_ws/src/YEYU_turtlebot3_pyqt_gui/YEYU_turtlebot3_pyqt_gui/start_nav2.sh'))
         self.bring_stop_PB.clicked.connect(self.bringup_stop)
         self.teleop_PB.clicked.connect(lambda: self.run_command('teleop', ['ros2', 'run', 'turtlebot3_teleop', 'teleop_keyboard']))
         self.stopall_PB.clicked.connect(self.stop_all_processes)
