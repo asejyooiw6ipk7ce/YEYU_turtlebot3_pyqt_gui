@@ -4,7 +4,8 @@ import threading
 import rclpy   
 from PyQt5.QtWidgets import QApplication
 
-from qt_signals import RosSignals
+# 지금은 ros2 run이 아니라 python3 main.py로 직접 실행하는 방식이라서
+# 점(.) 없는 일반 import를 그대로 씁니다. (이 폴더 안에서 실행하면 문제없이 동작합니다)
 from ros_node import TurtleBot3RosNode
 from gui import TurtleBot3GUI
 

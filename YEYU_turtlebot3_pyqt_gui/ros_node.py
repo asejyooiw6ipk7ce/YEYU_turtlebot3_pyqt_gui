@@ -8,10 +8,11 @@ from rclpy.action import ActionClient
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 
 # 메시지 및 액션 임포트
-from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped   
-from nav_msgs.msg import Odometry                         
-from sensor_msgs.msg import LaserScan, BatteryState                  
-from nav2_msgs.action import NavigateToPose, FollowWaypoints              
+from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import LaserScan, BatteryState
+from nav2_msgs.action import NavigateToPose, FollowWaypoints
+from action_msgs.msg import GoalStatus  # 목표(goal)가 성공/실패 했는지 확인하기 위해 추가
 
 from qt_signals import RosSignals
 
@@ -90,6 +91,11 @@ class TurtleBot3RosNode(Node):
             self.signals.scan_received.emit(self.last_scan_min)
 
     def battery_callback(self, msg):
+        # 배터리 정보를 아직 알 수 없을 때는 percentage 값이 NaN(숫자 아님)으로 옵니다.
+        # 이 경우는 그냥 무시합니다. (전에는 이걸 그대로 화면에 표시해서 이상한 값이 떴습니다)
+        if math.isnan(msg.percentage):
+            return
+
         # 전압과 백분율(0.0 ~ 1.0 값을 퍼센트로 변환) 전달
         percent = msg.percentage * 100.0 if msg.percentage <= 1.0 else msg.percentage
         self.signals.battery_received.emit(percent, msg.voltage)
@@ -106,12 +112,20 @@ class TurtleBot3RosNode(Node):
             self.signals.log_triggered.emit(f'존재하지 않는 경유점입니다: {wp_name}')
             return
 
-        if not self.navigate_client.wait_for_server(timeout_sec=1.0):
-            self.signals.log_triggered.emit('NavigateToPose 액션 서버를 사용할 수 없습니다.')
+        # 예전에는 여기서 wait_for_server(timeout_sec=1.0)를 사용했는데,
+        # 이 함수는 "최대 1초간 기다리는" 함수라서 그동안 화면(GUI) 전체가 멈췄습니다.
+        # server_is_ready()는 기다리지 않고 바로 "준비됐는지 아닌지"만 확인하므로 화면이 안 멈춥니다.
+        if not self.navigate_client.server_is_ready():
+            self.signals.log_triggered.emit('NavigateToPose 액션 서버가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.')
             return
 
-        goal_msg = NavigateToPose.Goal()
-        goal_msg.pose = self.make_pose(wp_name)
+        try:
+            goal_msg = NavigateToPose.Goal()
+            goal_msg.pose = self.make_pose(wp_name)
+        except (KeyError, TypeError, ValueError) as e:
+            # YAML 파일에 필요한 값(pose, angle 등)이 빠져있을 때 여기로 옵니다.
+            self.signals.log_triggered.emit(f'{wp_name}의 좌표 정보를 읽을 수 없습니다: {e}')
+            return
 
         self.signals.log_triggered.emit(f'{wp_name}(으)로 이동 명령 송신 중...')
         send_goal_future = self.navigate_client.send_goal_async(goal_msg)
@@ -127,7 +141,13 @@ class TurtleBot3RosNode(Node):
         result_future.add_done_callback(self.waypoint_result)
 
     def waypoint_result(self, future):
-        self.signals.log_triggered.emit('경유점 이동 완료!')
+        # 전에는 결과가 성공이든 실패든 무조건 "완료!"라고만 표시했습니다.
+        # 실제로 성공했는지(STATUS_SUCCEEDED) 확인해서 다르게 표시하도록 고쳤습니다.
+        status = future.result().status
+        if status == GoalStatus.STATUS_SUCCEEDED:
+            self.signals.log_triggered.emit('경유점 이동 완료!')
+        else:
+            self.signals.log_triggered.emit(f'경유점 이동 실패 (상태 코드: {status})')
 
     def make_pose(self, waypoint_name):
         wp = self.waypoints[waypoint_name]
@@ -161,18 +181,24 @@ class TurtleBot3RosNode(Node):
             self.signals.log_triggered.emit(f'존재하지 않는 경로명입니다: {traj_name}')
             return
             
-        if not self.waypoint_client.wait_for_server(timeout_sec=1.0):
-            self.signals.log_triggered.emit('/follow_waypoints 액션 서버가 준비되지 않았습니다.')
+        # go_to_waypoint와 마찬가지로, 화면이 멈추지 않도록 server_is_ready()로 바꿨습니다.
+        if not self.waypoint_client.server_is_ready():
+            self.signals.log_triggered.emit('/follow_waypoints 액션 서버가 아직 준비되지 않았습니다. 잠시 후 다시 시도해주세요.')
             return
 
         waypoint_names = self.trajectories[traj_name]
         poses = []
 
-        for name in waypoint_names:
-            if name not in self.waypoints:
-                self.signals.log_triggered.emit(f'YAML에 없는 경유점이 경로에 포함되어 있습니다: {name}')
-                return
-            poses.append(self.make_pose(name))
+        try:
+            for name in waypoint_names:
+                if name not in self.waypoints:
+                    self.signals.log_triggered.emit(f'YAML에 없는 경유점이 경로에 포함되어 있습니다: {name}')
+                    return
+                poses.append(self.make_pose(name))
+        except (KeyError, TypeError, ValueError) as e:
+            # YAML 파일에 필요한 값(pose, angle 등)이 빠져있을 때 여기로 옵니다.
+            self.signals.log_triggered.emit(f'경로의 좌표 정보를 읽을 수 없습니다: {e}')
+            return
 
         goal_msg = FollowWaypoints.Goal()
         goal_msg.poses = poses
@@ -191,4 +217,9 @@ class TurtleBot3RosNode(Node):
         result_future.add_done_callback(self.trajectory_result)
 
     def trajectory_result(self, future):
-        self.signals.log_triggered.emit('Trajectory 순차 주행 완료!')
+        # waypoint_result와 마찬가지로, 실제 성공 여부를 확인해서 표시합니다.
+        status = future.result().status
+        if status == GoalStatus.STATUS_SUCCEEDED:
+            self.signals.log_triggered.emit('Trajectory 순차 주행 완료!')
+        else:
+            self.signals.log_triggered.emit(f'Trajectory 순차 주행 실패 (상태 코드: {status})')

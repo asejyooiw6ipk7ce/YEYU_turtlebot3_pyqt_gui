@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os        
-import signal 
-import subprocess
-import rclpy   
+# 예전에는 os, signal, subprocess, rclpy, QProcess, RosSignals 를 import 했지만
+# 실제 코드 어디에서도 쓰이지 않는 "죽은 import"였어서 정리했습니다.
 from pathlib import Path
 from PyQt5 import uic
-from PyQt5.QtCore import QProcess
 from PyQt5.QtWidgets import QWidget, QFileDialog
-from qt_signals import RosSignals
+
+# .ui 파일을 설치 위치(share 폴더)에서 찾기 위해 사용합니다.
+# ros2 run으로 실행하면 이 방법으로 찾고, 실패하면(예: colcon build 전) 아래에서
+# 소스 폴더의 resource/ 안에 있는 파일을 대신 사용합니다.
+try:
+    from ament_index_python.packages import get_package_share_directory
+except ImportError:
+    get_package_share_directory = None
 
 ROBOT_USER = "yeyu"
 ROBOT_IP = "192.168.230.100"
@@ -24,7 +28,19 @@ class TurtleBot3GUI(QWidget):
         self.signals = self.node.signals 
 
         # UI 파일 로드
-        ui_path = Path(__file__).parent.parent / "resource" / "turtlebot3_pyqt_gui2.ui"
+        # 1순위: colcon build로 설치된 위치(share 폴더)에서 찾기
+        # 2순위: 설치 전이거나 못 찾으면, 소스 코드 폴더의 resource/ 안에서 찾기
+        ui_path = None
+        if get_package_share_directory is not None:
+            try:
+                share_dir = Path(get_package_share_directory('YEYU_turtlebot3_pyqt_gui'))
+                ui_path = share_dir / "turtlebot3_pyqt_gui2.ui"
+            except Exception:
+                ui_path = None
+
+        if ui_path is None or not ui_path.exists():
+            ui_path = Path(__file__).parent.parent / "resource" / "turtlebot3_pyqt_gui2.ui"
+
         uic.loadUi(str(ui_path), self)
 
         self.processes = []  # 실행 중인 외부 프로세스 보관용
@@ -45,6 +61,9 @@ class TurtleBot3GUI(QWidget):
         self.trajectory_button.clicked.connect(self.start_trajectory_navigation)
         self.yaml_load_PB.clicked.connect(self.open_yaml_file)
         self.waypoint_go_PB.clicked.connect(self.start_waypoint_navigation)
+
+        # 비상 정지 버튼: 화면에는 있었지만 눌러도 아무 동작도 안 하던 상태였어서 연결했습니다.
+        self.emergency_stop_PB.clicked.connect(self.emergency_stop)
 
     def open_yaml_file(self):
         """YAML 파일을 선택해 경유점/경로 데이터를 불러옵니다."""
@@ -108,5 +127,11 @@ class TurtleBot3GUI(QWidget):
 
     def update_battery_ui(self, percent, voltage):
         self.battery_lcd.display(f'{percent:.1f}')
-        # 전압 매핑용 UI 컴포넌트가 존재한다면 아래 주석을 해제하여 사용하세요.
-        # self.battery_volt_lcd.display(f'{voltage:.2f}')
+        # 예전 주석은 battery_volt_lcd 라는, .ui 파일에 존재하지도 않는 위젯 이름을 쓰고 있었습니다.
+        # 실제 .ui 파일에 있는 전압 표시용 위젯 이름은 voltage_lineEdit 입니다.
+        self.voltage_lineEdit.setText(f'{voltage:.2f} V')
+
+    def emergency_stop(self):
+        """비상 정지 버튼을 누르면 로봇을 즉시 멈춥니다 (속도 0으로 명령 전송)."""
+        self.node.publish_cmd(0.0, 0.0)
+        self.log('비상 정지! 로봇을 멈췄습니다.')

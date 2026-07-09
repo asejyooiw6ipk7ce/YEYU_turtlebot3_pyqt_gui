@@ -7,6 +7,17 @@
   <maintainer email="asejyooiw6ipk7ce@gmail.com">ktel</maintainer>
   <license>TODO: License declaration</license>
 
+  <!-- 이 프로그램이 실제로 실행될 때 필요한 패키지 목록입니다.
+       (지금까지는 이 목록이 비어있어서, 다른 컴퓨터에 설치할 때 무엇을 깔아야 하는지 알 수 없었습니다) -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>nav2_msgs</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>python3-pyqt5</exec_depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
