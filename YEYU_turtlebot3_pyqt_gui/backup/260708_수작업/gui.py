@@ -317,24 +317,24 @@ class TurtleBot3GUI(QWidget):
     '''
 
     # 13. yaml_loaded 신호 시그널의 플롯 함수
-    def update_comboboxes(self,wp_names,traj_names):
+    def update_comboboxes(self,traj_names):  #[수정] wp_names 내용 제거 ; (self,wp_names,traj_names) -> (self,traj_names)
         # 콤보박스 초기화 후 데이터 추가
-        self.waypoint_combo.clear()
+        #self.waypoint_combo.clear()
         self.trajectory_combo.clear()
 
         # UI 작업 수행
-        self.waypoint_combo.addItems(wp_names)
+        #self.waypoint_combo.addItems(wp_names)
         self.trajectory_combo.addItems(traj_names)
 
         # (3) 첫번째 경로 정보 화면에 띄우는 함수 호출
         self.show_trajectory_info()
 
     # 13-(1) 내부에 호출 ; 첫번째 경로 정보 화면에 띄우는 함수
-    def show_trajectory_info(self):
+    def show_trajectory_info(self):           #[수정] wp_names 내용 제거
         traj_name = self.trajectory_combo.currentText()   # 현재 선택된 경로 이름 가져옴 
 
         if traj_name in self.trajectories:
-            wp_names = self.trajectories[traj_name]
+            #wp_names = self.trajectories[traj_name]
             text = ' -> '.join(wp_names)            # 예: ['point1', 'point2'] 상태를 "point1 -> point2" 형태의 문자열로
             self.trajectory_label.setText(text)     # 화면에 경로순서 표시
 
