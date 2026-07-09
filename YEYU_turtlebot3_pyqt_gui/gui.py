@@ -6,6 +6,7 @@ from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtCore import QProcess
 from PyQt5.QtWidgets import QWidget
+from qt_signals import RosSignals
 
 ROBOT_USER = "yeyu"
 ROBOT_IP = "192.168.230.100"
@@ -47,8 +48,8 @@ class TurtleBot3GUI(QWidget):
     # 시그널->슬롯 연결
     def connect_signals(self):
         self.connect_PB.clicked.connect(self.connect_ros)                        # connect_PB 클릭 -> 1. connect_ros 실행
-        self.disconnect_PB.clicked.connect(self.disconnect_ros)                  # disconnect_PB 클릭 -> 2. disconnect_ros 실행
-        self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 100. closeEvent 실행
+        #self.disconnect_PB.clicked.connect(self.disconnect_ros)                  # disconnect_PB 클릭 -> 2. disconnect_ros 실행
+        #self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 100. closeEvent 실행
         
         # Launch Control 박스 속 5가지 버튼 시그널 -> 4. run_command() 슬롯 연결 
         self.connect_PB.clicked.connect (self.connect_ros)
@@ -69,8 +70,8 @@ class TurtleBot3GUI(QWidget):
         self.stop_PB.clicked.connect(lambda: self.send_velocity(0.0, 0.0))
 
         # Nav2 Goal 박스 속 시그널 -> 슬롯 연결
-        self.load_preset_PB.clicked.connect(self.load_preset_goal)         # load_preset_PB 클릭 -> 7. load_preset_goal 실행
-        self.reset_odom_view_PB.clicked.connect(self.reset_odom_display)   # reset_odom_view_PB 클릭 -> 9. reset_odom_display 실행
+        #self.load_preset_PB.clicked.connect(self.load_preset_goal)         # load_preset_PB 클릭 -> 7. load_preset_goal 실행
+        #self.reset_odom_view_PB.clicked.connect(self.reset_odom_display)   # reset_odom_view_PB 클릭 -> 9. reset_odom_display 실행
         
         #self.initial_pose_PB.clicked.connect(self.set_initial_pose)        # initial_pose_PB 클릭 -> 10. set_initial_pose 실행
         #self.send_goal_PB.clicked.connect(self.send_nav_goal)              # send_goal_PB 클릭 -> 11. send_nav_goal 실행
@@ -148,19 +149,20 @@ class TurtleBot3GUI(QWidget):
             return
 
         self.node.publish_cmd(linear, angular)
-        self.current_cmd_lineEdit.setText(f'lin={linear:.2f}, ang={angular:.2f}')  
+        self.current_cmd_vel_lineEdit.setText(f'lin={linear:.2f}, ang={angular:.2f}')  
         self.log(f'cmd_vel: linear={linear:.2f}, angular={angular:.2f}')
     
     # 6. Brindup 버튼의 슬롯 ; ssh로 bringup 스크립트 실행
     def run_ssh(self,command):
-        self.process = QProcess(self)
+        self.process = QProcess(self)                                             
+        # 파이썬 내부의 숨겨진 가상 터미널 창 생성
 
-        ssh_command=[ROBOT, command]
+        ssh_command=[ROBOT, command]   # ROBOT = f"{ROBOT_USER}@{ROBOT_IP}"
 
         self.process.readyReadStandardOutput.connect(self.read_stdout)
         self.process.readyReadStandardError.connect(self.read_stderr)
 
-        self.process.start('ssh', ssh_command)
+        self.process.start('ssh', ssh_command)       # 백그라운드에서 조용히 ssh 명령 실행
 
     def read_stdout(self):
         data = self.process.readAllStandardOutput().data().decode()
@@ -187,7 +189,7 @@ class TurtleBot3GUI(QWidget):
 
     def bringup_ros(self):
         self.log("Starting bringup...")
-        self.run_ssh('~/tb3_scripts/start_bringup.sh')
+        self.run_ssh('~/tb3_scripts/start_bringup.sh')   # 로봇에 있는 ~/tb3_scripts/start_bringup.sh를 통해 bringup을 하게 됨
 
 
     def bringup_stop(self):
@@ -338,8 +340,7 @@ class TurtleBot3GUI(QWidget):
 
     # 14. print 대신 self.log()로
     def log(self, text):
-        self.log_listWidget.addItem(text)
-        self.log_listWidget.scrollToBottom()
+        self.log_text.append(text)  # UI 파일 이름인 log_text로 맞추고 append 사용
 
     # 15.odom_received 시그널의 플롯함수
     def update_odom_ui(self, x, y, yaw):
