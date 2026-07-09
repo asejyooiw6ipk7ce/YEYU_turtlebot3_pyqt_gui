@@ -181,6 +181,8 @@ class TurtleBot3GUI(QWidget):
 
     # yaml_loaded 신호의 슬롯
     def update_comboboxes(self, traj_names):
+        self.waypoint_combo.clear()
+        self.waypoint_combo.addItems(wp_names)
         self.trajectory_combo.clear()
         self.trajectory_combo.addItems(traj_names)
         self.show_trajectory_info()

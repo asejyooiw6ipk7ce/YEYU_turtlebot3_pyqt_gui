@@ -123,10 +123,7 @@ class TurtleBot3RosNode(Node):
             wp_names = traj['waypoints']
             self.trajectories[name] = wp_names
 
-        # GUI는 trajectory_combo만 사용하므로 trajectory 이름 목록만 전달
-        # (waypoint 콤보박스가 필요하면 emit(list(self.waypoints.keys()), list(self.trajectories.keys()))로
-        #  바꾸고 qt_signals.py의 yaml_loaded 시그널 인자도 맞춰줘야 함)
-        self.signals.yaml_loaded.emit(list(self.trajectories.keys()))
+        self.signals.yaml_loaded.emit(list(self.waypoints.keys()), list(self.trajectories.keys()))
 
         self.signals.log_triggered.emit('YAML 로드 완료')
         self.signals.log_triggered.emit(f'Waypoint 개수: {len(self.waypoints)}')
