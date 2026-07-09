@@ -52,8 +52,8 @@ class TurtleBot3GUI(QWidget):
         # self.disconnect_PB.clicked.connect(self.disconnect_ros)
         # self.exit_PB.clicked.connect(self.closeEvent)
         self.bringup_PB.clicked.connect(self.bringup_ros)
-        self.nav2_PB.clicked.connect(lambda: self.run_command('nav2', ['ros2', 'launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'use_sim_time:=false']))
-        self.rviz_PB.clicked.connect(lambda: self.run_command('rviz', ['rviz2']))
+        self.nav2_PB.clicked.connect(lambda: self.run_command('nav2', ['ros2', 'launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'map:=$HOME/ktel/pyqt_ws/src/YEYU_turtlebot3_pyqt_gui/maps/yeyu_map1.yaml']))
+        self.bring_stop_PB.clicked.connect(self.bringup_stop)
         self.teleop_PB.clicked.connect(lambda: self.run_command('teleop', ['ros2', 'run', 'turtlebot3_teleop', 'teleop_keyboard']))
         self.stopall_PB.clicked.connect(self.stop_all_processes)
 
