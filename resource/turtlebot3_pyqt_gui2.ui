@@ -531,9 +531,9 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="rviz_PB">
+     <widget class="QPushButton" name="bring_stop_PB">
       <property name="text">
-       <string>RViz</string>
+       <string>BringStop</string>
       </property>
      </widget>
     </item>
