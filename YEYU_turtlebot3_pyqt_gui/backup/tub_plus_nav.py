@@ -22,8 +22,7 @@ from geometry_msgs.msg import PoseStamped                                 # make
 from nav2_msgs.action import FollowWaypoints                              # /follow_waypoints
 from sensor_msgs.msg import LaserScan                                     # /scan
 from sensor_msgs.msg import BatteryState                                  # /battery_status
-
-
+from geometry_msgs.msg import PoseWithCovarianceStamped                   # PoseWithCovarianceStamped 정의 안되어있어서 추가
 
 ROBOT_USER = "yeyu"
 ROBOT_IP = "192.168.230.100"
@@ -48,12 +47,12 @@ class RosSignals(QObject):
     scan_received = pyqtSignal(float)                # 최소 거리 전달
     battery_received = pyqtSignal(float, float)      # 퍼센트, 전압 전달
 
-class TurtleBot3GuiNode(Node):
+class TurtleBot3RosNode(Node):
     def __init__(self):                                     # 클래스 생성자. 
 
         # yaml파일 불러와야함
 
-        super().__init__('turtlebot3_burger_gui')                         # 부모 생성자 호출 + 노드 이름 지정
+        super().__init__('turtlebot3_ros_node')                         # 부모 생성자 호출 + 노드 이름 지정
         self.signals = RosSignals()
 
         # pyqt노드에서 
@@ -362,7 +361,7 @@ class TurtleBot3GuiNode(Node):
         # QTimer 대신 멀티스레드로 바뀌면서 ui_timer의 슬롯 함수 흩어져서 여기도 수정
         #self.last_scan_min = min(values) if values else None
 
-        self.signals.battery_received.emit(msg.percentage * 100.0, msg.voltage)
+        self.signals.scan_received.emit(self.last_scan_min)
 class TurtleBot3GUI(QWidget):
     def __init__(self,ros_node):
         super().__init__()
@@ -439,7 +438,8 @@ class TurtleBot3GUI(QWidget):
 
         print('ROS 2 connected')
 
-        self.ros_timer.start(20)  # 100ms마다 울리기
+        # QTimer -> 멀티스레드 방식으로 바꾸면서 주석처리
+        #self.ros_timer.start(20)  # 100ms마다 울리기
 
 
     # 2. disconnect 시그널의 슬롯 ; node 퇴근 , ros_timer 멈춤
@@ -452,7 +452,6 @@ class TurtleBot3GUI(QWidget):
         self.ros_state_lineEdit.setText('Disconnected')                  
         self.log('ROS 2 disconnected')
 
-        self.ros_timer.stop()
 
 
 
@@ -728,7 +727,7 @@ def main():
     if not rclpy.ok():
         rclpy.init(args=None)
 
-    ros_node = TurtleBot3GuiNode()
+    ros_node = TurtleBot3RosNode()
 
     # 백그라운드 스레드 생성 및 시작 (rclpy.spin을 통째로 넘김)
     ros_thread = threading.Thread(target=rclpy.spin, args=(ros_node,), daemon=True)
