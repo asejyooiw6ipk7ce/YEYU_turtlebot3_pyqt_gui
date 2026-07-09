@@ -355,7 +355,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="load_preset_PB">
+           <widget class="QPushButton" name="load_load_PB">
             <property name="text">
              <string>Load YAML</string>
             </property>
@@ -384,16 +384,6 @@
           </widget>
          </item>
         </layout>
-       </item>
-       <item>
-        <widget class="QLabel" name="registered_waypoints_label">
-         <property name="text">
-          <string>Registered Waypoints</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QListWidget" name="registered_waypoints_listWidget"/>
        </item>
       </layout>
      </widget>

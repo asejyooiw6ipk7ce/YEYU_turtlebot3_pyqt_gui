@@ -65,11 +65,9 @@ class TurtleBot3GUI(QWidget):
         self.stop_PB.clicked.connect(lambda: self.send_velocity(0.0, 0.0))
 
         # Waypoint
-        self.load_preset_PB.clicked.connect(self.load_preset_goal)
-        # self.send_goal_PB.clicked.connect(self.send_nav_goal)
+        self.yaml_load_PB.clicked.connect(self.load_yaml_file)
+        self.waypoint_go_PB.clicked.connect(self.go_to_waypoint)
         # self.cancel_goal_PB.clicked.connect(self.cancel_nav_goal)
-        # 초기 위치 지정 버튼이 UI에 있다면 아래처럼 연결
-        # self.set_initial_pose_PB.clicked.connect(self.set_initial_pose)
         # self.reset_odom_PB.clicked.connect(self.reset_odom_display)
 
         # Trajectory
@@ -180,43 +178,6 @@ class TurtleBot3GUI(QWidget):
         self.log("Stopping bringup...")
         self.run_ssh('~/tb3_scripts/stop_bringup.sh')
 
-    # load_preset_PB 시그널의 슬롯
-    def load_preset_goal(self):
-        idx = self.preset_goal_CB.currentIndex()
-
-        presets = [
-            (0.0, 0.0, 0.0),
-            (1.0, 0.0, 0.0),
-            (0.0, 1.0, 1.57)
-        ]
-
-        x, y, yaw = presets[idx]
-
-        self.goal_x_spinBox.setValue(x)
-        self.goal_y_spinBox.setValue(y)
-        self.goal_yaw_spinBox.setValue(yaw)
-
-        print(f'Preset loaded: x={x}, y={y}, yaw={yaw}')
-
-    # reset_odom_view_PB 시그널의 슬롯 (버튼이 있다면 connect_signals에서 연결)
-    def reset_odom_display(self):
-        self.odom_x_lcd.display('0.00')
-        self.odom_y_lcd.display('0.00')
-        self.odom_yaw_lcd.display('0.00')
-        self.log('Odometry display reset. Robot odom frame is not reset.')
-
-    # initial_pose_PB 시그널의 슬롯 (버튼이 있다면 connect_signals에서 연결)
-    def set_initial_pose(self):
-        if not self.node:
-            self.log('Connect ROS 2 first')
-            return
-
-        self.node.publish_initial_pose(
-            self.goal_x_spinBox.value(),
-            self.goal_y_spinBox.value(),
-            self.goal_yaw_spinBox.value()
-        )
-        self.log('Initial pose published to /initialpose')
 
     # yaml_loaded 신호의 슬롯
     def update_comboboxes(self, traj_names):
@@ -231,7 +192,7 @@ class TurtleBot3GUI(QWidget):
         if traj_name in self.node.trajectories:
             wp_names = self.node.trajectories[traj_name]
             text = ' -> '.join(wp_names)
-            self.trajectory_label.setText(text)
+            self.trajectory_label.setText(text)  
 
     def log(self, text):
         self.log_text.append(text)
@@ -250,13 +211,37 @@ class TurtleBot3GUI(QWidget):
         except AttributeError:
             pass
 
+    # waypoint_go_PB 시그널의 슬롯
+    def go_to_waypoint(self):
+        wp_name = self.waypoint_combo.currentText()
+
+        if wp_name == '':
+            self.log('선택된 waypoint가 없습니다')
+            return
+        
+        ok, text = self.node.go_to_waypoint(wp_name)
+        self.log(text)
+
+    # yaml_load_PB 시그널의 슬롯
+    def load_yaml_file(self):
+        path, _ = QFileDialog.getOpenFileName(          #QFileDialog.getOpenFileName : 윈도우 탐색기 같은 창 열어줌
+            self,                         # 이 GUI창 위에 뜨도록
+            "YAML 파일 선택",              # 파일 탐색기 창 맨 위에 뜨는 제목
+            "",                           # 어느 폴더에서 시작할지
+            "YAML Files (*.yaml *.yml)"   # 확장자가 yaml,yml인 파일만 필터링
+        )                                 # 결과 : ("/home/user/waypoints.yaml", "YAML Files (*.yaml *.yml)")
+        print(path)
+
     # trajectory_button 클릭 시그널의 슬롯
-    # 원본은 여기서 직접 FollowWaypoints 액션을 만들었는데(FollowWaypoints import도 안 되어 있고
-    # self.make_pose/self.waypoints/self.follow_client가 GUI 자신에는 없어서 무조건 에러가 났음)
-    # go_to_waypoint와 동일하게 self.node에 위임하는 방식으로 수정
-    def go_to_trajectory(self, traj_name):
-        if not self.node:
-            self.log('Connect ROS 2 first')
+    def go_to_trajectory(self):
+        traj_name = self.trajectory_combo.currentText()  # GUI창에서 선택항목 가져오기
+
+        if traj_name == '':
+            self.log('선택된 trajectory가 없습니다.')
+            return
+
+        if traj_name not in self.trajectories:
+            self.log('trajectory 정보가 없습니다.')
             return
 
         ok, text = self.node.go_to_trajectory(traj_name)

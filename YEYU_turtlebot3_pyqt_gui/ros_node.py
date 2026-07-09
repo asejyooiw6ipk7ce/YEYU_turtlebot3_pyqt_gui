@@ -215,10 +215,8 @@ class TurtleBot3RosNode(Node):
 
         return pose
 
-    # 단일 waypoint 이동 요청
+   # 2. waypoint_button 클릭의 슬롯함수 ; 단일 목적지 액션 통신 기능
     def go_to_waypoint(self, waypoint_name):
-        if waypoint_name == '':
-            return False, '선택된 waypoint가 없습니다.'
 
         if not self.navigate_client.wait_for_server(timeout_sec=1.0):
             return False, '/navigate_to_pose 액션 서버가 준비되지 않았습니다.'
@@ -234,6 +232,7 @@ class TurtleBot3RosNode(Node):
 
         return True, f'Waypoint 이동 요청 송신 완료: {waypoint_name}'
 
+    # 2-(4) navigate_client가 요청-> navigate_server 응답시 콜백함수
     def waypoint_goal_response(self, future):
         goal_handle = future.result()
         self.goal_handle = goal_handle
@@ -246,38 +245,39 @@ class TurtleBot3RosNode(Node):
         result_future = goal_handle.get_result_async()
         result_future.add_done_callback(self.waypoint_result)
 
+    # 2-(5) in(4) navigate_server 응답시 콜백함수
     def waypoint_result(self, future):
         self.signals.log_triggered.emit('Waypoint 이동 완료')
 
+    '''
     def cancel_goal(self):
         if self.goal_handle:
             self.goal_handle.cancel_goal_async()
             return True
         return False
-
-    # trajectory(경유점 순차 주행) 이동 요청
-    # 원래 gui.py의 go_to_trajectory 안에 있던 로직인데, FollowWaypoints import도 안 되어 있고
-    # self.make_pose / self.waypoints / self.follow_client를 GUI 자신의 속성처럼 참조하고 있어서
-    # 그대로 실행하면 무조건 에러가 나는 코드였음 -> go_to_waypoint와 동일한 패턴으로 노드 쪽에 정리
+    '''
+    
     def go_to_trajectory(self, traj_name):
-        if traj_name == '':
-            return False, '선택된 trajectory가 없습니다.'
 
-        if traj_name not in self.trajectories:
-            return False, 'trajectory 정보가 없습니다.'
-
+        # 1초동안 액션서버 켜져있는지 확인
         if not self.follow_client.wait_for_server(timeout_sec=1.0):
             return False, '/follow_waypoints 액션 서버가 준비되지 않았습니다.'
 
+        # self.trajectories에서 선택항목만 -> waypoint_names
         waypoint_names = self.trajectories[traj_name]
+
         poses = []
+
         for name in waypoint_names:
             if name not in self.waypoints:
                 return False, f'YAML에 없는 waypoint입니다: {name}'
-            poses.append(self.make_pose(name))
+            
+            pose = self.make_pose(name)
+            poses.append(pose)
 
-        goal_msg = FollowWaypoints.Goal()
-        goal_msg.poses = poses
+        # Goal 메세지
+        goal_msg = FollowWaypoints.Goal()   # 순차주행용 액션 goal 메세지 생성 -> goal_msg
+        goal_msg.poses = poses              # goal_msg에 목표값 poses 주입
 
         self.signals.log_triggered.emit(f'Trajectory 주행 요청: {traj_name}')
         self.signals.log_triggered.emit(f'포함된 waypoint 개수: {len(poses)}')
