@@ -154,14 +154,15 @@ class TurtleBot3GUI(QWidget):
     
     # 6. Brindup 버튼의 슬롯 ; ssh로 bringup 스크립트 실행
     def run_ssh(self,command):
-        self.process = QProcess(self)
+        self.process = QProcess(self)                                             
+        # 파이썬 내부의 숨겨진 가상 터미널 창 생성
 
-        ssh_command=[ROBOT, command]
+        ssh_command=[ROBOT, command]   # ROBOT = f"{ROBOT_USER}@{ROBOT_IP}"
 
         self.process.readyReadStandardOutput.connect(self.read_stdout)
         self.process.readyReadStandardError.connect(self.read_stderr)
 
-        self.process.start('ssh', ssh_command)
+        self.process.start('ssh', ssh_command)       # 백그라운드에서 조용히 ssh 명령 실행
 
     def read_stdout(self):
         data = self.process.readAllStandardOutput().data().decode()
@@ -188,7 +189,7 @@ class TurtleBot3GUI(QWidget):
 
     def bringup_ros(self):
         self.log("Starting bringup...")
-        self.run_ssh('~/tb3_scripts/start_bringup.sh')
+        self.run_ssh('~/tb3_scripts/start_bringup.sh')   # 로봇에 있는 ~/tb3_scripts/start_bringup.sh를 통해 bringup을 하게 됨
 
 
     def bringup_stop(self):
