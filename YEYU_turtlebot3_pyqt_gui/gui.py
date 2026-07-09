@@ -52,7 +52,7 @@ class TurtleBot3GUI(QWidget):
         # self.disconnect_PB.clicked.connect(self.disconnect_ros)
         # self.exit_PB.clicked.connect(self.closeEvent)
         self.bringup_PB.clicked.connect(self.bringup_ros)
-        self.nav2_PB.clicked.connect(lambda: self.run_command('nav2', ['ros2', 'launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'map:=$HOME/ktel/pyqt_ws/src/YEYU_turtlebot3_pyqt_gui/maps/yeyu_map1.yaml']))
+        self.nav2_PB.clicked.connect(self.self.run_local('/home/ktel/pyqt_ws/src/YEYU_turtlebot3_pyqt_gui/YEYU_turtlebot3_pyqt_gui/start_nav2.sh'))
         self.bring_stop_PB.clicked.connect(self.bringup_stop)
         self.teleop_PB.clicked.connect(lambda: self.run_command('teleop', ['ros2', 'run', 'turtlebot3_teleop', 'teleop_keyboard']))
         self.stopall_PB.clicked.connect(self.stop_all_processes)
@@ -142,12 +142,20 @@ class TurtleBot3GUI(QWidget):
     # bringup 버튼의 슬롯 ; ssh로 bringup 스크립트 실행
     def run_ssh(self, command):
         self.process = QProcess(self)
-        ssh_command = [ROBOT, command]
+        ssh_command = [ROBOT, command]    # yeyu@192.168.230.100
 
         self.process.readyReadStandardOutput.connect(self.read_stdout)
         self.process.readyReadStandardError.connect(self.read_stderr)
 
         self.process.start('ssh', ssh_command)
+
+    def run_local(self, script_path):
+        self.process = QProcess(self)
+
+        self.process.readyReadStandarOutput.connect(self.read_stdout)
+        self.process.readyReadStandardError.connect(self.read_stderr)
+
+        self.process.start('bash', [script_path])
 
     def read_stdout(self):
         data = self.process.readAllStandardOutput().data().decode()
