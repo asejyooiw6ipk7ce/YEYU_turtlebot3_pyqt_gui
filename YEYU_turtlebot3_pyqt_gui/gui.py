@@ -2,9 +2,11 @@ import os
 import signal 
 import subprocess
 import rclpy   
+from PyQt5.QtCore import QProcess
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget, QFileDialog
+from qt_signals import RosSignals
 
 # .ui 파일을 설치 위치(share 폴더)에서 찾기 위해 사용합니다.
 # ros2 run으로 실행하면 이 방법으로 찾고, 실패하면(예: colcon build 전) 아래에서
@@ -53,12 +55,19 @@ class TurtleBot3GUI(QWidget):
 
     # 시그널->슬롯 연결
     def connect_signals(self):
+
+        # Robot Status
+
+        # cmd_vel
+
+        #
+
+
         self.connect_PB.clicked.connect(self.connect_ros)                        # connect_PB 클릭 -> 1. connect_ros 실행
         #self.disconnect_PB.clicked.connect(self.disconnect_ros)                  # disconnect_PB 클릭 -> 2. disconnect_ros 실행
         #self.exit_PB.clicked.connect(self.closeEvent)                                 # exit_PB 클릭 -> 100. closeEvent 실행
         
         # Launch Control 박스 속 5가지 버튼 시그널 -> 4. run_command() 슬롯 연결 
-        self.connect_PB.clicked.connect (self.connect_ros)
         self.nav2_PB.clicked.connect(lambda: self.run_command('nav2',['ros2','launch', 'turtlebot3_navigation2', 'navigation2.launch.py', 'use_sim_time:=false']))
         self.rviz_PB.clicked.connect(lambda: self.run_command('rviz',['rviz2']))
         self.teleop_PB.clicked.connect(lambda: self.run_command('teleop',['ros2','run', 'turtlebot3_teleop', 'teleop_keyboard']))
@@ -76,7 +85,7 @@ class TurtleBot3GUI(QWidget):
         self.stop_PB.clicked.connect(lambda: self.send_velocity(0.0, 0.0))
 
         # Nav2 Goal 박스 속 시그널 -> 슬롯 연결
-        #self.load_preset_PB.clicked.connect(self.load_preset_goal)         # load_preset_PB 클릭 -> 7. load_preset_goal 실행
+        self.load_preset_PB.clicked.connect(self.load_preset_goal)         # load_preset_PB 클릭 -> 7. load_preset_goal 실행
         #self.reset_odom_view_PB.clicked.connect(self.reset_odom_display)   # reset_odom_view_PB 클릭 -> 9. reset_odom_display 실행
         
         #self.initial_pose_PB.clicked.connect(self.set_initial_pose)        # initial_pose_PB 클릭 -> 10. set_initial_pose 실행

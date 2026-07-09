@@ -343,22 +343,6 @@ class TurtleBot3RosNode(Node):
 
         self.signals.scan_received.emit(self.last_scan_min)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     # QTimer 대신 멀티스레드로 변경
     # # 6. ros_timer 타이머 울릴 때마다의 슬롯
     # def spin_ros_once(self):
