@@ -18,7 +18,10 @@ from sensor_msgs.msg import BatteryState                  # /battery_status용
 
 # === nav2_msgs 관련 액션들 ===
 from nav2_msgs.action import NavigateToPose               # 단일 waypoint 이동용
-from nav2_msgs.action import FollowWaypoints              # trajectory(순차 waypoint) 이동용
+from nav2_msgs.action import FollowWaypoints              # trajectory 이동용
+
+# === audio_msgs 관련 액션들 ===
+from robot_audio_interfaces.msg import AudioCommand       
 
 # === qt_signals.py ===
 from qt_signals import RosSignals
@@ -72,13 +75,6 @@ class TurtleBot3RosNode(Node):
             10
         )
 
-        # /initialpose 발행자
-        self.initial_pose_pub = self.create_publisher(
-            PoseWithCovarianceStamped,
-            '/initialpose',
-            10
-        )
-
         # 단일 waypoint 이동용 액션클라이언트
         self.navigate_client = ActionClient(
             self,
@@ -104,6 +100,13 @@ class TurtleBot3RosNode(Node):
             '/scan',
             self.scan_callback,
             qos_profile
+        )
+
+        # /audio/command 발행자 생성 ; 변형) 명령어 -topic_name:= 뒤에 원하는 토픽명 정할 수 잇음
+        self.publisher = self.create_publisher(
+            AudioCommand,
+            '/audio/command',
+            10
         )
 
     # YAML 파일 읽어서 waypoints/trajectories 채우는 함수
@@ -273,3 +276,14 @@ class TurtleBot3RosNode(Node):
 
     def trajectory_result(self, future):
         self.signals.log_triggered.emit('Trajectory 주행 완료')
+
+    # /audio/command 콜백함수
+    def publish_command(self, command_type, text='', sound_id='', volume=1.0, repeat=1 ):
+        msg = AudioCommand()        # 주문서 양식: AudioCommand()
+        msg.type = command_type     # 매개변수로 받은 값들 msg에 채워넣기
+        msg.text = text
+        msg.sound_id = sound_id
+        msg.volume = float(volume)
+        msg.repeat = int(repeat)
+
+        self.publisher.publish(msg)
