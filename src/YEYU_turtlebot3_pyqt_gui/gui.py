@@ -6,7 +6,8 @@ from PyQt5.QtCore import QProcess
 from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget, QFileDialog
-from qt_signals import RosSignals
+from PyQt5.QtWidgets import QMessageBox                           # publish_tts에서 text 없으면 경고 팝업 뜰 때 씀
+from YEYU_turtlebot3_pyqt_gui.src.YEYU_turtlebot3_pyqt_gui.qt_signals import RosSignals
 
 # .ui 파일을 설치 위치(share 폴더)에서 찾기 위해 사용합니다.
 # ros2 run으로 실행하면 이 방법으로 찾고, 실패하면(예: colcon build 전) 아래에서
@@ -53,7 +54,8 @@ class TurtleBot3GUI(QWidget):
         # self.exit_PB.clicked.connect(self.closeEvent)
         self.bringup_PB.clicked.connect(self.bringup_ros)
         self.nav2_PB.clicked.connect(lambda: self.run_local('/home/ktel/pyqt_ws/src/YEYU_turtlebot3_pyqt_gui/YEYU_turtlebot3_pyqt_gui/start_nav2.sh'))
-        '''lambda를 안 붙이면 python3 실행하자마자 뒤의 함수가 실행됨'''
+        '''lambda를 안 붙이면 python3 실행하자마자 뒤의 함수가 실행됨
+            clicked 시그널은 bool을 넘겨주기 때문에 traj_name 문자열을 넘기려면 lambda로 감싸야 함'''
         self.bring_stop_PB.clicked.connect(self.bringup_stop)
         self.teleop_PB.clicked.connect(lambda: self.run_command('teleop', ['ros2', 'run', 'turtlebot3_teleop', 'teleop_keyboard']))
         self.stopall_PB.clicked.connect(self.stop_all_processes)
@@ -72,12 +74,15 @@ class TurtleBot3GUI(QWidget):
         # self.reset_odom_PB.clicked.connect(self.reset_odom_display)
 
         # Trajectory
-        # clicked 시그널은 bool을 넘겨주기 때문에 traj_name 문자열을 넘기려면 lambda로 감싸야 함
         self.trajectory_button.clicked.connect(self.go_to_trajectory())
         self.trajectory_combo.currentTextChanged.connect(lambda _: self.show_trajectory_info())
 
         # gTTS
-        ''' self.speak_PB.clicked.connect()'''
+        self.tts_button.clicked.connect(self.publish_tts)                    # tts_button 클릭 -> 2. publish_tts 실행
+        self.effect_button.clicked.connect(self.publish_effect)              # effect_button 클릭 -> 3. publish_effect 실행
+        self.tts_effect_button.clicked.connect(self.publish_tts_and_effect)  # tts_effext_button 클릭 -> 4. publish_tts_and_effect 실행
+        self.sound_stop_button.clicked.connect(self.publish_stop) 
+        
 
     # [슬롯 함수]
 
@@ -262,6 +267,95 @@ class TurtleBot3GUI(QWidget):
 
         ok, text = self.node.go_to_trajectory(traj_name)
         self.log(text)
+
+    # tts_button 클릭 시그널의 슬롯
+    def publish_tts(self):
+        text = self.gtts_textEdit.toPlainText().strip()                            # 입력받은 텍스트(self.get_text) -> text
+
+        # 입력받은 게 없으면 팝업으로 경고창 뜸
+        if not text:
+            QMessageBox.warning(
+                self,
+                '입력 오류',
+                'TTS로 출력할 문장을 입력하세요.'
+            )
+            return
+
+        # ros_node에서 publish_command(선택한 값) 호출
+        self.node.publish_command(
+            command_type=AudioCommand.TYPE_TTS,
+            text=text,
+            sound_id='',
+            volume=self.volume_spin.value(),
+            repeat=self.repeat_spin.value()
+        )
+        self.log('TTS 명령 발행 완료')
+
+    # effect_button 클릭 시그널의 슬롯
+    def publish_effect(self):
+        sound_id = self.sound_combo.currentData()                      # 입력받은 ID값(self.get_sound_id) -> sound_id 
+
+        # 입력받은 게 없으면
+        if not sound_id:
+            QMessageBox.warning(
+                self,
+                '선택 오류',
+                '출력할 효과음을 선택하세요.'
+            )
+            return
+
+        # ros_node에서 publish_command(선택한 값) 호출
+        self.node.publish_command(
+            command_type=AudioCommand.TYPE_EFFECT,
+            text='',
+            sound_id=sound_id,
+            volume=self.volume_spin.value(),
+            repeat=self.repeat_spin.value() 
+        )
+        self.log(f'효과음 명령 발행 완료: {sound_id}')
+
+    # tts_effect_button 클릭 시그널의 슬롯
+    def publish_tts_and_effect(self):
+        text = self.gtts_textEdit.toPlainText().strip()                             # 입력받은 텍스트(self.get_text) -> text
+        sound_id = self.sound_combo.currentData()                        # 입력받은 ID값(self.get_sound_id) -> sound_id 
+
+        # 입력 받은 게 없으면
+        if not text:
+            QMessageBox.warning(
+                self,
+                '입력 오류',
+                'TTS로 출력할 문장을 입력하세요.'
+            )
+            return
+        if not sound_id:
+            QMessageBox.warning(
+                self,
+                '선택 오류',
+                '먼저 출력할 효과음을 선택하세요.'
+            )
+            return
+
+        # ros_node에서 publish_command(선택한 값) 호출
+        self.node.publish_command(
+            command_type=AudioCommand.TYPE_TTS_AND_EFFECT,
+            text=text,
+            sound_id=sound_id,
+            volume=self.volume_spin.value() ,
+            repeat=self.repeat_spin.value()
+        )
+        self.log('효과음 + TTS 명령 발행 완료')
+
+    # sound_stop_button 클릭 시그널의 슬롯
+    def publish_stop(self):
+        # ros_node에서 publish_command(선택한 값) 호출
+        self.node.publish_command(
+            command_type=AudioCommand.TYPE_STOP,
+            text='',
+            sound_id='',
+            volume=1.0,
+            repeat=1
+        )
+        self.log('재생 정지 명령 발행 완료')
 
     def closeEvent(self, event):
         if self.node:
