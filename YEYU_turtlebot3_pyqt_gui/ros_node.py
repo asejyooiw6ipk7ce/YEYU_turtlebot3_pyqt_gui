@@ -160,42 +160,17 @@ class TurtleBot3RosNode(Node):
         self.last_scan_min = min(values) if values else None
         self.signals.scan_received.emit(self.last_scan_min)
 
-    # /initialpose 발행
-    def publish_initial_pose(self, x, y, yaw):
-        msg = PoseWithCovarianceStamped()
-        msg.header.frame_id = 'map'
-        msg.header.stamp = self.get_clock().now().to_msg()
-
-        msg.pose.pose.position.x = float(x)
-        msg.pose.pose.position.y = float(y)
-
-        yaw_rad = float(yaw)
-        qz = math.sin(yaw_rad / 2.0)
-        qw = math.cos(yaw_rad / 2.0)
-        msg.pose.pose.orientation.z = qz
-        msg.pose.pose.orientation.w = qw
-
-        # 공분산: 위치 추정 초기 불확실도
-        msg.pose.covariance[0] = 0.25      # x 오차
-        msg.pose.covariance[7] = 0.25      # y 오차
-        msg.pose.covariance[35] = 0.0685   # 각도 오차
-
-        self.initial_pose_pub.publish(msg)
-
     # waypoint 이름 -> PoseStamped 변환
     def make_pose(self, waypoint_name):
         wp = self.waypoints[waypoint_name]
 
         frame_id = wp.get('frame_id', 'map')
-        position = wp['pose']['position']
-        angle = wp['pose']['angle']
 
-        x = float(position['x'])
-        y = float(position['y'])
+        x = float(wp['x'])
+        y = float(wp['y'])
         z = 0.0  # TurtleBot3 Burger는 2D 주행 로봇이므로 z는 0으로 고정
 
-        yaw_deg = float(angle['yaw'])
-        yaw_rad = math.radians(yaw_deg)
+        yaw_rad = float(wp['yaw'])
         qz = math.sin(yaw_rad / 2.0)
         qw = math.cos(yaw_rad / 2.0)
 
