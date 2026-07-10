@@ -24,7 +24,7 @@ from nav2_msgs.action import FollowWaypoints              # trajectory 이동용
 from robot_audio_interfaces.msg import AudioCommand       
 
 # === qt_signals.py ===
-from YEYU_turtlebot3_pyqt_gui.src.YEYU_turtlebot3_pyqt_gui.qt_signals import RosSignals
+from qt_signals import RosSignals
 
 
 def quaternion_to_yaw(q):

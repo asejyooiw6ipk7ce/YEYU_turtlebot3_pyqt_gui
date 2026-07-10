@@ -7,7 +7,9 @@ from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget, QFileDialog , QTableWidgetItem      
 from PyQt5.QtWidgets import QMessageBox                           # publish_tts에서 text 없으면 경고 팝업 뜰 때 씀
-from YEYU_turtlebot3_pyqt_gui.src.YEYU_turtlebot3_pyqt_gui.qt_signals import RosSignals
+from qt_signals import RosSignals
+
+from robot_audio_interfaces.msg import AudioCommand      
 
 # .ui 파일을 설치 위치(share 폴더)에서 찾기 위해 사용합니다.
 # ros2 run으로 실행하면 이 방법으로 찾고, 실패하면(예: colcon build 전) 아래에서

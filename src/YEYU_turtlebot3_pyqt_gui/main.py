@@ -6,8 +6,8 @@ from PyQt5.QtWidgets import QApplication
 
 # 지금은 ros2 run이 아니라 python3 main.py로 직접 실행하는 방식이라서
 # 점(.) 없는 일반 import를 그대로 씁니다. (이 폴더 안에서 실행하면 문제없이 동작합니다)
-from YEYU_turtlebot3_pyqt_gui.src.YEYU_turtlebot3_pyqt_gui.ros_node import TurtleBot3RosNode
-from YEYU_turtlebot3_pyqt_gui.src.YEYU_turtlebot3_pyqt_gui.gui import TurtleBot3GUI
+from ros_node import TurtleBot3RosNode
+from gui import TurtleBot3GUI
 
 def main():
     os.environ['ROS_DOMAIN_ID'] = '40'
