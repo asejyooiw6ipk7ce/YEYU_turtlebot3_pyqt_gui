@@ -14,7 +14,7 @@ from nav_msgs.msg import Odometry                         # /odom용
 
 # === sensor_msgs 관련 메시지들 ===
 from sensor_msgs.msg import LaserScan                     # /scan용
-from sensor_msgs.msg import BatteryState                  # /battery_status용
+from sensor_msgs.msg import BatteryState                  # /battery_state용
 
 # === nav2_msgs 관련 액션들 ===
 from nav2_msgs.action import NavigateToPose               # 단일 waypoint 이동용
@@ -52,10 +52,10 @@ class TurtleBot3RosNode(Node):
         self.last_scan_min = None
         self.goal_handle = None
 
-        # /battery_status 수신자
+        # /battery_state 수신자
         self.battery_sub = self.create_subscription(
             BatteryState,
-            '/battery_status',
+            '/battery_state',
             self.battery_callback,
             10
         )
@@ -132,7 +132,7 @@ class TurtleBot3RosNode(Node):
         self.signals.log_triggered.emit(f'Waypoint 개수: {len(self.waypoints)}')
         self.signals.log_triggered.emit(f'Trajectory 개수: {len(self.trajectories)}')
 
-    # /battery_status 콜백
+    # /battery_state 콜백
     def battery_callback(self, msg):
         self.last_battery_p = msg.percentage
         self.last_battery_v = msg.voltage

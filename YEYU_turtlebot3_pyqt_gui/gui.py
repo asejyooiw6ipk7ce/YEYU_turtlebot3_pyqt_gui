@@ -160,7 +160,7 @@ class TurtleBot3GUI(QWidget):
         self.process.readyReadStandardOutput.connect(self.read_stdout)
         self.process.readyReadStandardError.connect(self.read_stderr)
 
-        self.process.start('ssh', [ssh_command])
+        self.process.start('ssh', ssh_command)
         self.log(f'ssh {ssh_command}')
 
     def run_local(self, script_path):
