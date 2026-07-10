@@ -52,7 +52,8 @@ class TurtleBot3GUI(QWidget):
         # self.disconnect_PB.clicked.connect(self.disconnect_ros)
         # self.exit_PB.clicked.connect(self.closeEvent)
         self.bringup_PB.clicked.connect(self.bringup_ros)
-        self.nav2_PB.clicked.connect(self.run_local('/home/ktel/pyqt_ws/src/YEYU_turtlebot3_pyqt_gui/YEYU_turtlebot3_pyqt_gui/start_nav2.sh'))
+        self.nav2_PB.clicked.connect(lambda: self.run_local('/home/ktel/pyqt_ws/src/YEYU_turtlebot3_pyqt_gui/YEYU_turtlebot3_pyqt_gui/start_nav2.sh'))
+        '''lambda를 안 붙이면 python3 실행하자마자 뒤의 함수가 실행됨'''
         self.bring_stop_PB.clicked.connect(self.bringup_stop)
         self.teleop_PB.clicked.connect(lambda: self.run_command('teleop', ['ros2', 'run', 'turtlebot3_teleop', 'teleop_keyboard']))
         self.stopall_PB.clicked.connect(self.stop_all_processes)
@@ -72,7 +73,7 @@ class TurtleBot3GUI(QWidget):
 
         # Trajectory
         # clicked 시그널은 bool을 넘겨주기 때문에 traj_name 문자열을 넘기려면 lambda로 감싸야 함
-        self.trajectory_button.clicked.connect(lambda: self.go_to_trajectory(self.trajectory_combo.currentText()))
+        self.trajectory_button.clicked.connect(self.go_to_trajectory())
         self.trajectory_combo.currentTextChanged.connect(lambda _: self.show_trajectory_info())
 
         # gTTS
@@ -148,14 +149,17 @@ class TurtleBot3GUI(QWidget):
         self.process.readyReadStandardError.connect(self.read_stderr)
 
         self.process.start('ssh', ssh_command)
+        self.log('ssh',ssh_command)
 
     def run_local(self, script_path):
         self.process = QProcess(self)
 
-        self.process.readyReadStandarOutput.connect(self.read_stdout)
+        self.process.readyReadStandardOutput.connect(self.read_stdout)
         self.process.readyReadStandardError.connect(self.read_stderr)
 
         self.process.start('bash', [script_path])
+        self.log('bash',[script_path])
+
 
     def read_stdout(self):
         data = self.process.readAllStandardOutput().data().decode()
@@ -252,7 +256,7 @@ class TurtleBot3GUI(QWidget):
             self.log('선택된 trajectory가 없습니다.')
             return
 
-        if traj_name not in self.trajectories:
+        if traj_name not in self.node.trajectories:
             self.log('trajectory 정보가 없습니다.')
             return
 
