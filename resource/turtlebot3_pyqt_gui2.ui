@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1400</width>
-    <height>1020</height>
+    <height>820</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -544,76 +544,6 @@
       </property>
       <property name="text">
        <string>Stop All</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QGroupBox" name="team_free_groupBox">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>810</y>
-     <width>1360</width>
-     <height>90</height>
-    </rect>
-   </property>
-   <property name="title">
-    <string>Team Free Function</string>
-   </property>
-   <layout class="QHBoxLayout" name="team_free_layout">
-    <item>
-     <widget class="QWidget" name="team_free_placeholder_widget" native="true"/>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QGroupBox" name="utility_groupBox">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>910</y>
-     <width>1360</width>
-     <height>90</height>
-    </rect>
-   </property>
-   <property name="title">
-    <string/>
-   </property>
-   <layout class="QHBoxLayout" name="utility_layout">
-    <item>
-     <widget class="QPushButton" name="led_control_PB">
-      <property name="text">
-       <string>LED Control</string>
-      </property>
-      <property name="checkable">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="camera_view_PB">
-      <property name="text">
-       <string>Camera View</string>
-      </property>
-      <property name="checkable">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="map_save_PB">
-      <property name="text">
-       <string>Map Save</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="emergency_stop_PB">
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(220, 50, 50); color: white; font-weight: bold;</string>
-      </property>
-      <property name="text">
-       <string>Emergency Stop</string>
       </property>
      </widget>
     </item>
