@@ -305,7 +305,7 @@
              </row>
              <row>
               <property name="text">
-               <string>/battery_state</string>
+               <string>/battery_status</string>
               </property>
              </row>
              <column>
