@@ -7,7 +7,7 @@ from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget, QFileDialog , QTableWidgetItem      
 from PyQt5.QtWidgets import QMessageBox                           # publish_tts에서 text 없으면 경고 팝업 뜰 때 씀
-from qt_signals import RosSignals
+from YEYU_turtlebot3_pyqt_gui.YEYU_turtlebot3_pyqt_gui.qt_signals import RosSignals
 
 from robot_audio_interfaces.msg import AudioCommand      
 
