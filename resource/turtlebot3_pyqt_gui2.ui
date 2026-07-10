@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1400</width>
-    <height>820</height>
+    <height>771</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -36,654 +36,626 @@
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QWidget" name="column1_widget">
+  <widget class="QWidget" name="">
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>55</y>
-     <width>440</width>
-     <height>645</height>
+     <y>40</y>
+     <width>1371</width>
+     <height>711</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="column1_layout" stretch="3,2,3">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QGroupBox" name="status_groupBox">
-      <property name="title">
-       <string>Robot Status</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <layout class="QFormLayout" name="status_formLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="robot_state_label">
-         <property name="text">
-          <string>Robot State</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="robot_state_lineEdit">
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="battery_label">
-         <property name="text">
-          <string>Battery (%)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLCDNumber" name="battery_lcd">
-         <property name="digitCount">
-          <number>5</number>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="voltage_label">
-         <property name="text">
-          <string>Voltage (V)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="voltage_lineEdit">
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="scan_label">
-         <property name="text">
-          <string>Min Scan (m)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QLineEdit" name="scan_lineEdit">
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="position_x_label">
-         <property name="text">
-          <string>X</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QLCDNumber" name="odom_x_lcd">
-         <property name="digitCount">
-          <number>7</number>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="position_y_label">
-         <property name="text">
-          <string>Y</string>
-         </property>
-        </widget>
-       </item>
-       <item row="5" column="1">
-        <widget class="QLCDNumber" name="odom_y_lcd">
-         <property name="digitCount">
-          <number>7</number>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="0">
-        <widget class="QLabel" name="position_yaw_label">
-         <property name="text">
-          <string>Yaw</string>
-         </property>
-        </widget>
-       </item>
-       <item row="6" column="1">
-        <widget class="QLCDNumber" name="odom_yaw_lcd">
-         <property name="digitCount">
-          <number>7</number>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QGroupBox" name="cmd_vel_groupBox">
-      <property name="title">
-       <string>cmd_vel</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <layout class="QFormLayout" name="cmd_vel_formLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="linear_label">
-         <property name="text">
-          <string>Linear (m/s)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QDoubleSpinBox" name="linear_spinBox">
-         <property name="maximum">
-          <double>0.200000000000000</double>
-         </property>
-         <property name="singleStep">
-          <double>0.010000000000000</double>
-         </property>
-         <property name="value">
-          <double>0.100000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="angular_label">
-         <property name="text">
-          <string>Angular (rad/s)</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QDoubleSpinBox" name="angular_spinBox">
-         <property name="maximum">
-          <double>2.840000000000000</double>
-         </property>
-         <property name="singleStep">
-          <double>0.010000000000000</double>
-         </property>
-         <property name="value">
-          <double>0.500000000000000</double>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="current_cmd_vel_label">
-         <property name="text">
-          <string>Current cmd_vel</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="current_cmd_vel_lineEdit">
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <layout class="QGridLayout" name="gridLayout">
-         <item row="0" column="1">
-          <widget class="QPushButton" name="forward_PB">
-           <property name="text">
-            <string>Forward</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="left_PB">
-           <property name="text">
-            <string>Left</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QPushButton" name="stop_PB">
-           <property name="text">
-            <string>Stop</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="2">
-          <widget class="QPushButton" name="right_PB">
-           <property name="text">
-            <string>Right</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="1">
-          <widget class="QPushButton" name="backward_PB">
-           <property name="text">
-            <string>Backward</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QGroupBox" name="topic_monitor_groupBox">
-      <property name="title">
-       <string>Topic Monitor</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <layout class="QVBoxLayout" name="topic_monitor_layout">
-       <item>
-        <widget class="QTableWidget" name="topic_monitor_table">
-         <attribute name="horizontalHeaderVisible">
-          <bool>false</bool>
-         </attribute>
-         <attribute name="horizontalHeaderStretchLastSection">
-          <bool>true</bool>
-         </attribute>
-         <attribute name="verticalHeaderVisible">
-          <bool>true</bool>
-         </attribute>
-         <attribute name="verticalHeaderStretchLastSection">
-          <bool>true</bool>
-         </attribute>
-         <row>
-          <property name="text">
-           <string>/odom</string>
+     <layout class="QHBoxLayout" name="horizontalLayout">
+      <item>
+       <layout class="QVBoxLayout" name="column1_layout" stretch="3,2,3">
+        <item>
+         <widget class="QGroupBox" name="status_groupBox">
+          <property name="title">
+           <string>Robot Status</string>
           </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>/cmd_vel</string>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
           </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>/scan</string>
+          <layout class="QFormLayout" name="status_formLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="robot_state_label">
+             <property name="text">
+              <string>Robot State</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="robot_state_lineEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="battery_label">
+             <property name="text">
+              <string>Battery (%)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLCDNumber" name="battery_lcd">
+             <property name="digitCount">
+              <number>5</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="voltage_label">
+             <property name="text">
+              <string>Voltage (V)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="voltage_lineEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="scan_label">
+             <property name="text">
+              <string>Min Scan (m)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QLineEdit" name="scan_lineEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="position_x_label">
+             <property name="text">
+              <string>X</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLCDNumber" name="odom_x_lcd">
+             <property name="digitCount">
+              <number>7</number>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="position_y_label">
+             <property name="text">
+              <string>Y</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1">
+            <widget class="QLCDNumber" name="odom_y_lcd">
+             <property name="digitCount">
+              <number>7</number>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0">
+            <widget class="QLabel" name="position_yaw_label">
+             <property name="text">
+              <string>Yaw</string>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="1">
+            <widget class="QLCDNumber" name="odom_yaw_lcd">
+             <property name="digitCount">
+              <number>7</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="cmd_vel_groupBox">
+          <property name="title">
+           <string>cmd_vel</string>
           </property>
-         </row>
-         <row>
-          <property name="text">
-           <string>/battery_state</string>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
           </property>
-         </row>
-         <column>
-          <property name="text">
-           <string/>
+          <layout class="QFormLayout" name="cmd_vel_formLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="linear_label">
+             <property name="text">
+              <string>Linear (m/s)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QDoubleSpinBox" name="linear_spinBox">
+             <property name="maximum">
+              <double>0.200000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+             <property name="value">
+              <double>0.100000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="angular_label">
+             <property name="text">
+              <string>Angular (rad/s)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QDoubleSpinBox" name="angular_spinBox">
+             <property name="maximum">
+              <double>2.840000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.010000000000000</double>
+             </property>
+             <property name="value">
+              <double>0.500000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="current_cmd_vel_label">
+             <property name="text">
+              <string>Current cmd_vel</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="current_cmd_vel_lineEdit">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <layout class="QGridLayout" name="gridLayout">
+             <item row="0" column="1">
+              <widget class="QPushButton" name="forward_PB">
+               <property name="text">
+                <string>Forward</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QPushButton" name="left_PB">
+               <property name="text">
+                <string>Left</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QPushButton" name="stop_PB">
+               <property name="text">
+                <string>Stop</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QPushButton" name="right_PB">
+               <property name="text">
+                <string>Right</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QPushButton" name="backward_PB">
+               <property name="text">
+                <string>Backward</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="topic_monitor_groupBox">
+          <property name="title">
+           <string>Topic Monitor</string>
           </property>
-         </column>
-        </widget>
-       </item>
-      </layout>
-     </widget>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <layout class="QVBoxLayout" name="topic_monitor_layout">
+           <item>
+            <widget class="QTableWidget" name="topic_monitor_table">
+             <attribute name="horizontalHeaderVisible">
+              <bool>false</bool>
+             </attribute>
+             <attribute name="horizontalHeaderStretchLastSection">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="verticalHeaderVisible">
+              <bool>true</bool>
+             </attribute>
+             <attribute name="verticalHeaderStretchLastSection">
+              <bool>true</bool>
+             </attribute>
+             <row>
+              <property name="text">
+               <string>/odom</string>
+              </property>
+             </row>
+             <row>
+              <property name="text">
+               <string>/cmd_vel</string>
+              </property>
+             </row>
+             <row>
+              <property name="text">
+               <string>/scan</string>
+              </property>
+             </row>
+             <row>
+              <property name="text">
+               <string>/battery_state</string>
+              </property>
+             </row>
+             <column>
+              <property name="text">
+               <string/>
+              </property>
+             </column>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="column2_layout" stretch="3,3,2">
+        <item>
+         <widget class="QGroupBox" name="waypoint_groupBox">
+          <property name="title">
+           <string>Waypoint</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <layout class="QVBoxLayout" name="waypoint_layout">
+           <item>
+            <widget class="QGroupBox" name="yaml_groupBox">
+             <property name="title">
+              <string>YAML File</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+             <layout class="QHBoxLayout" name="yaml_layout">
+              <item>
+               <widget class="QLineEdit" name="yaml_path_lineEdit">
+                <property name="readOnly">
+                 <bool>true</bool>
+                </property>
+                <property name="placeholderText">
+                 <string>불러온 YAML 파일 경로가 여기에 표시됩니다</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="yaml_load_PB">
+                <property name="text">
+                 <string>Load YAML</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="waypoint_select_label">
+             <property name="text">
+              <string>경유점 선택</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="waypoint_select_layout">
+             <item>
+              <widget class="QComboBox" name="waypoint_combo"/>
+             </item>
+             <item>
+              <widget class="QPushButton" name="waypoint_go_PB">
+               <property name="text">
+                <string>이동</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="trajectory_groupBox">
+          <property name="title">
+           <string>Trajectory</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <layout class="QVBoxLayout" name="trajectory_layout">
+           <item>
+            <widget class="QLabel" name="trajectory_select_label">
+             <property name="text">
+              <string>Trajectory 선택</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="trajectory_combo"/>
+           </item>
+           <item>
+            <widget class="QLabel" name="trajectory_label">
+             <property name="text">
+              <string>경로 정보 없음</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="trajectory_button">
+             <property name="text">
+              <string>Start Trajectory</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="gtts_groupBox">
+          <property name="title">
+           <string>gTTS</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <layout class="QVBoxLayout" name="gtts_layout">
+           <item>
+            <widget class="QLabel" name="gtts_text_label">
+             <property name="text">
+              <string>Text</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QTextEdit" name="gtts_textEdit">
+             <property name="placeholderText">
+              <string>TurtleBot3 USB 스피커로 출력할 문장을 입력하세요.</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="sound_layout">
+             <item>
+              <widget class="QLabel" name="sound_label">
+               <property name="text">
+                <string>효과음:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QComboBox" name="sound_combo">
+               <item>
+                <property name="text">
+                 <string>효과음 없음</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>start</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>waypoint</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>goal</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>warning</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>error</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="option_layout">
+             <item>
+              <widget class="QLabel" name="volume_label">
+               <property name="text">
+                <string>볼륨:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QDoubleSpinBox" name="volume_spin">
+               <property name="minimum">
+                <double>0.000000000000000</double>
+               </property>
+               <property name="maximum">
+                <double>1.000000000000000</double>
+               </property>
+               <property name="singleStep">
+                <double>0.100000000000000</double>
+               </property>
+               <property name="value">
+                <double>1.000000000000000</double>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="repeat_label">
+               <property name="text">
+                <string>반복:</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QSpinBox" name="repeat_spin">
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>10</number>
+               </property>
+               <property name="value">
+                <number>1</number>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="button_layout_1">
+             <item>
+              <widget class="QPushButton" name="tts_button">
+               <property name="text">
+                <string>TTS 출력</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="effect_button">
+               <property name="text">
+                <string>효과음 출력</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="tts_effect_button">
+               <property name="text">
+                <string>효과음 + TTS 출력</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="button_layout_2">
+             <item>
+              <widget class="QPushButton" name="stop_button">
+               <property name="text">
+                <string>재생 정지</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="column3_layout">
+        <item>
+         <widget class="QGroupBox" name="log_groupBox">
+          <property name="title">
+           <string>Log</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+          <layout class="QVBoxLayout" name="log_layout">
+           <item>
+            <widget class="QTextEdit" name="log_text">
+             <property name="readOnly">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
     </item>
-   </layout>
-  </widget>
-  <widget class="QWidget" name="column2_widget">
-   <property name="geometry">
-    <rect>
-     <x>475</x>
-     <y>55</y>
-     <width>440</width>
-     <height>648</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="column2_layout" stretch="3,3,2">
     <item>
-     <widget class="QGroupBox" name="waypoint_groupBox">
+     <widget class="QGroupBox" name="launch_groupBox">
       <property name="title">
-       <string>Waypoint</string>
+       <string>ROS2 Launch Buttons</string>
       </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <layout class="QVBoxLayout" name="waypoint_layout">
+      <layout class="QHBoxLayout" name="launch_layout">
        <item>
-        <widget class="QGroupBox" name="yaml_groupBox">
-         <property name="title">
-          <string>YAML File</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-         <layout class="QHBoxLayout" name="yaml_layout">
-          <item>
-           <widget class="QLineEdit" name="yaml_path_lineEdit">
-            <property name="readOnly">
-             <bool>true</bool>
-            </property>
-            <property name="placeholderText">
-             <string>불러온 YAML 파일 경로가 여기에 표시됩니다</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="yaml_load_PB">
-            <property name="text">
-             <string>Load YAML</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="waypoint_select_label">
+        <widget class="QPushButton" name="connect_PB">
          <property name="text">
-          <string>경유점 선택</string>
+          <string>Connect</string>
          </property>
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="waypoint_select_layout">
-         <item>
-          <widget class="QComboBox" name="waypoint_combo"/>
-         </item>
-         <item>
-          <widget class="QPushButton" name="waypoint_go_PB">
-           <property name="text">
-            <string>이동</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QGroupBox" name="trajectory_groupBox">
-      <property name="title">
-       <string>Trajectory</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <layout class="QVBoxLayout" name="trajectory_layout">
-       <item>
-        <widget class="QLabel" name="trajectory_select_label">
+        <widget class="QPushButton" name="bringup_PB">
          <property name="text">
-          <string>Trajectory 선택</string>
+          <string>Bringup</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QComboBox" name="trajectory_combo"/>
-       </item>
-       <item>
-        <widget class="QLabel" name="trajectory_label">
+        <widget class="QPushButton" name="nav2_PB">
          <property name="text">
-          <string>경로 정보 없음</string>
-         </property>
-         <property name="wordWrap">
-          <bool>true</bool>
+          <string>Nav2</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="trajectory_button">
+        <widget class="QPushButton" name="teleop_PB">
          <property name="text">
-          <string>Start Trajectory</string>
+          <string>Teleop</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="bring_stop_PB">
+         <property name="text">
+          <string>BringStop</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="stopall_PB">
+         <property name="styleSheet">
+          <string notr="true">color: rgb(200, 0, 0); font-weight: bold;</string>
+         </property>
+         <property name="text">
+          <string>Stop All</string>
          </property>
         </widget>
        </item>
       </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QGroupBox" name="gtts_groupBox">
-      <property name="title">
-       <string>gTTS</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <layout class="QVBoxLayout" name="gtts_layout">
-       <item>
-        <widget class="QLabel" name="gtts_text_label">
-         <property name="text">
-          <string>Text</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QTextEdit" name="gtts_textEdit">
-         <property name="placeholderText">
-          <string>TurtleBot3 USB 스피커로 출력할 문장을 입력하세요.</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="sound_layout">
-         <item>
-          <widget class="QLabel" name="sound_label">
-           <property name="text">
-            <string>효과음:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="sound_combo">
-           <item>
-            <property name="text">
-             <string>효과음 없음</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>start</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>waypoint</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>goal</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>warning</string>
-            </property>
-           </item>
-           <item>
-            <property name="text">
-             <string>error</string>
-            </property>
-           </item>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="option_layout">
-         <item>
-          <widget class="QLabel" name="volume_label">
-           <property name="text">
-            <string>볼륨:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QDoubleSpinBox" name="volume_spin">
-           <property name="minimum">
-            <double>0.000000000000000</double>
-           </property>
-           <property name="maximum">
-            <double>1.000000000000000</double>
-           </property>
-           <property name="singleStep">
-            <double>0.100000000000000</double>
-           </property>
-           <property name="value">
-            <double>1.000000000000000</double>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="repeat_label">
-           <property name="text">
-            <string>반복:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSpinBox" name="repeat_spin">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>10</number>
-           </property>
-           <property name="value">
-            <number>1</number>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="button_layout_1">
-         <item>
-          <widget class="QPushButton" name="tts_button">
-           <property name="text">
-            <string>TTS 출력</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="effect_button">
-           <property name="text">
-            <string>효과음 출력</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="button_layout_2">
-         <item>
-          <widget class="QPushButton" name="tts_effect_button">
-           <property name="text">
-            <string>효과음 + TTS 출력</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="stop_button">
-           <property name="text">
-            <string>재생 정지</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="clear_button">
-           <property name="text">
-            <string>내용 지우기</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QLabel" name="status_label">
-         <property name="text">
-          <string>대기 중</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QWidget" name="column3_widget">
-   <property name="geometry">
-    <rect>
-     <x>930</x>
-     <y>55</y>
-     <width>450</width>
-     <height>645</height>
-    </rect>
-   </property>
-   <layout class="QVBoxLayout" name="column3_layout">
-    <item>
-     <widget class="QGroupBox" name="log_groupBox">
-      <property name="title">
-       <string>Log</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <layout class="QVBoxLayout" name="log_layout">
-       <item>
-        <widget class="QTextEdit" name="log_text">
-         <property name="readOnly">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QGroupBox" name="launch_groupBox">
-   <property name="geometry">
-    <rect>
-     <x>20</x>
-     <y>710</y>
-     <width>1360</width>
-     <height>90</height>
-    </rect>
-   </property>
-   <property name="title">
-    <string>ROS2 Launch Buttons</string>
-   </property>
-   <layout class="QHBoxLayout" name="launch_layout">
-    <item>
-     <widget class="QPushButton" name="connect_PB">
-      <property name="text">
-       <string>Connect</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="bringup_PB">
-      <property name="text">
-       <string>Bringup</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="nav2_PB">
-      <property name="text">
-       <string>Nav2</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="teleop_PB">
-      <property name="text">
-       <string>Teleop</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="bring_stop_PB">
-      <property name="text">
-       <string>BringStop</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="stopall_PB">
-      <property name="styleSheet">
-       <string notr="true">color: rgb(200, 0, 0); font-weight: bold;</string>
-      </property>
-      <property name="text">
-       <string>Stop All</string>
-      </property>
      </widget>
     </item>
    </layout>
