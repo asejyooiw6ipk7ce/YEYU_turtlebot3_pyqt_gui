@@ -5,7 +5,7 @@ import rclpy
 from PyQt5.QtCore import QProcess
 from pathlib import Path
 from PyQt5 import uic
-from PyQt5.QtWidgets import QWidget, QFileDialog
+from PyQt5.QtWidgets import QWidget, QFileDialog , QTableWidgetItem      
 from PyQt5.QtWidgets import QMessageBox                           # publish_tts에서 text 없으면 경고 팝업 뜰 때 씀
 from YEYU_turtlebot3_pyqt_gui.src.YEYU_turtlebot3_pyqt_gui.qt_signals import RosSignals
 
@@ -37,6 +37,10 @@ class TurtleBot3GUI(QWidget):
         self.processes = []        # 실행중인 프로세스 보관할 리스트
 
         self.connect_signals()     # 사용자정의함수 ; 시그널->슬롯 연결
+
+        # Topic Monitor 화면 대기중 띄움
+        for row in range(4):
+            self.topic_monitor_table.setItem(row, 0, QTableWidgetItem('대기 중'))
 
         # self.signals 신호 시그널 -> 플롯 연결
         self.node.signals.yaml_loaded.connect(self.update_comboboxes)          # yaml_loaded 신호 -> update_comboboxes() 실행
@@ -74,7 +78,7 @@ class TurtleBot3GUI(QWidget):
         # self.reset_odom_PB.clicked.connect(self.reset_odom_display)
 
         # Trajectory
-        self.trajectory_button.clicked.connect(self.go_to_trajectory())
+        self.trajectory_button.clicked.connect(self.go_to_trajectory)
         self.trajectory_combo.currentTextChanged.connect(lambda _: self.show_trajectory_info())
 
         # gTTS
@@ -82,7 +86,7 @@ class TurtleBot3GUI(QWidget):
         self.effect_button.clicked.connect(self.publish_effect)              # effect_button 클릭 -> 3. publish_effect 실행
         self.tts_effect_button.clicked.connect(self.publish_tts_and_effect)  # tts_effext_button 클릭 -> 4. publish_tts_and_effect 실행
         self.sound_stop_button.clicked.connect(self.publish_stop) 
-        
+    
 
     # [슬롯 함수]
 
@@ -144,6 +148,7 @@ class TurtleBot3GUI(QWidget):
         self.node.publish_cmd(linear, angular)
         self.current_cmd_vel_lineEdit.setText(f'lin={linear:.2f}, ang={angular:.2f}')
         self.log(f'cmd_vel: linear={linear:.2f}, angular={angular:.2f}')
+        self.topic_monitor_table.setItem(1, 0, QTableWidgetItem('수신 중'))
 
     # bringup 버튼의 슬롯 ; ssh로 bringup 스크립트 실행
     def run_ssh(self, command):
@@ -216,17 +221,22 @@ class TurtleBot3GUI(QWidget):
     def log(self, text):
         self.log_text.append(text)
 
+    # odom_received 신호의 슬롯
     def update_odom_ui(self, x, y, yaw):
         self.odom_x_lcd.display(f'{x:.2f}')
         self.odom_y_lcd.display(f'{y:.2f}')
         self.odom_yaw_lcd.display(f'{yaw:.2f}')
+        self.topic_monitor_table.setItem(0, 0, QTableWidgetItem('수신 중'))
 
     def update_scan_ui(self, min_scan):
         self.scan_lineEdit.setText(f'{min_scan:.2f}' if min_scan is not None else '--')
+        self.topic_monitor_table.setItem(2, 0, QTableWidgetItem('수신 중'))
 
     def update_battery_ui(self, percentage, voltage):
         try:
-            self.battery_lineEdit.setText(f'{percentage:.1f}% ({voltage:.2f}V)')
+            self.battery_lcd.display(f'{percentage:.1f}')
+            self.voltage_lineEdit.setText(f'{voltage:.2f}')
+            self.topic_monitor_table.setItem(3, 0, QTableWidgetItem('수신 중'))
         except AttributeError:
             pass
 
