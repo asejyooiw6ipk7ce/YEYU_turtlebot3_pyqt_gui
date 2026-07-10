@@ -566,7 +566,7 @@
            <item>
             <layout class="QHBoxLayout" name="button_layout_2">
              <item>
-              <widget class="QPushButton" name="stop_button">
+              <widget class="QPushButton" name="sound_stop_button">
                <property name="text">
                 <string>재생 정지</string>
                </property>
