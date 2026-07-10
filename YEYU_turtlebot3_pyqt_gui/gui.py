@@ -7,7 +7,7 @@ from pathlib import Path
 from PyQt5 import uic
 from PyQt5.QtWidgets import QWidget, QFileDialog , QTableWidgetItem      
 from PyQt5.QtWidgets import QMessageBox                           # publish_tts에서 text 없으면 경고 팝업 뜰 때 씀
-from YEYU_turtlebot3_pyqt_gui.YEYU_turtlebot3_pyqt_gui.qt_signals import RosSignals
+from qt_signals import RosSignals
 
 from robot_audio_interfaces.msg import AudioCommand      
 
@@ -160,8 +160,8 @@ class TurtleBot3GUI(QWidget):
         self.process.readyReadStandardOutput.connect(self.read_stdout)
         self.process.readyReadStandardError.connect(self.read_stderr)
 
-        self.process.start('ssh', ssh_command)
-        self.log('ssh',ssh_command)
+        self.process.start('ssh', [ssh_command])
+        self.log(f'ssh {ssh_command}')
 
     def run_local(self, script_path):
         self.process = QProcess(self)
@@ -170,7 +170,7 @@ class TurtleBot3GUI(QWidget):
         self.process.readyReadStandardError.connect(self.read_stderr)
 
         self.process.start('bash', [script_path])
-        self.log('bash',[script_path])
+        self.log(f'bash {script_path}')
 
 
     def read_stdout(self):
